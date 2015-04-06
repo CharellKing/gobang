@@ -60,6 +60,10 @@ class GobangServer(object):
                                     wx.CallAfter(self.gui.recv_timer, msg.content[0])
                                 elif msg.type == GobangMsg.RESULT_MSG_TYPE:
                                     wx.CallAfter(self.gui.Result, msg.content[0])
+                for sock in exceptional:
+                    inputs.remove(sock)
+                    if sock in outputs:
+                        outputs.remove(sock)
 
 
 
@@ -70,13 +74,19 @@ class GobangServer(object):
             self.conn.close()
 
     def start(self):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.bind((self.host, self.port))
-        self.sock.listen(1)
+        try:
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.bind((self.host, self.port))
+            self.sock.listen(1)
+            self.is_start = True
+            worker = Thread(target = self.WorkerThread, args = (self.sock,))
+            worker.start()
+            return True
+        except Exception, ex:
+            self.gui.status_static.SetLabel("listen failed!!!!!")
+            print Exception, ":", ex
+            return False
 
-        self.is_start = True
-        worker = Thread(target = self.WorkerThread, args = (self.sock,))
-        worker.start()
 
     def stop(self):
         self.is_start = False
@@ -137,18 +147,31 @@ class GobangClient(object):
                             elif msg.type == GobangMsg.RESULT_MSG_TYPE:
                                     wx.CallAfter(self.gui.Result, msg.content[0])
 
+            for s in exceptional:
+                inputs.remove(s)
+                if s in outputs:
+                    outputs.remove(s)
+
+
 
         wx.PostEvent(self.gui.stop_btn, wx.PyCommandEvent(wx.EVT_BUTTON.typeId, self.gui.stop_btn.GetId()))
         self.sock.close()
         self.sock = None
 
     def start(self):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect((self.host, self.port))
-        self.gui.status_static.SetLabel("connect success")
-        self.is_start = True
-        worker = Thread(target = self.WorkerThread, args = (self.sock, ))
-        worker.start()
+        try:
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.connect((self.host, self.port))
+            self.gui.status_static.SetLabel("connect success")
+            self.is_start = True
+            worker = Thread(target = self.WorkerThread, args = (self.sock, ))
+            worker.start()
+            return True
+        except Exception, ex:
+            self.gui.status_static.SetLabel("connect failed!!!!!")
+            print Exception, ":", ex
+            return False
+
 
     def stop(self):
         self.is_start = False

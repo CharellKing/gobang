@@ -73,7 +73,7 @@ class GobangPanel(wx.Panel):
         self.Bind(wx.EVT_RADIOBUTTON, self.OnRobotRadio, self.robot_radio)
 
         self.network_radio = wx.RadioButton( self, wx.ID_ANY, "network", (530, 100), (80, 30), 0 )
-        self.Bind(wx.EVT_RADIOBUTTON, self.OnNetWorkRadio, self.network_radio)
+        self.Bind(wx.EVT_RADIOBUTTON, self.OnNetworkRadio, self.network_radio)
 
         self.ip_static_text = wx.StaticText(self, -1, "ip:", pos = (390, 150), size = (15, 30), style = wx.ALL)
         self.ip_addr = wx.TextCtrl(self, -1, "127.0.0.1", (420, 150), (80, 30), style = wx.ALL)
@@ -267,7 +267,7 @@ class GobangPanel(wx.Panel):
         self.turn_me = self.NetworkTurnMe
 
 
-    def OnNetWorkRadio(self, evt):
+    def OnNetworkRadio(self, evt):
         self.robot_or_network = GobangPanel.NETWORK_OPT
         self.InitSelectNetwork()
         self.turn_other = self.NetworkTurnOther
@@ -356,7 +356,8 @@ class GobangPanel(wx.Panel):
         ip = self.ip_addr.GetValue()
         port = self.port.GetValue()
         self.network = GobangServer(ip, port, self)
-        self.network.start()
+        if False == self.network.start():
+            return;
 
         self.InitListenOrConnectCtrl()
 
@@ -365,12 +366,15 @@ class GobangPanel(wx.Panel):
 
 
     def OnConnect(self, evt):
-        self.InitListenOrConnectCtrl()
         ip = self.ip_addr.GetValue()
         port = self.port.GetValue()
         self.network = GobangClient(ip, port, self)
-        self.status_static.SetLabel("connect ...")
-        self.network.start()
+        if False == self.network.start():
+            return True
+
+        self.InitListenOrConnectCtrl()
+        self.status_static.SetLabel("connect success")
+
 
 
 
