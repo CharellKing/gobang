@@ -21,6 +21,10 @@ class Stone(object):
 class Gobang(object):
     GRIDS = 15
 
+    SUCCESS = 1
+    FAILED = 2
+    TIED = 3
+
     def __init__(self):
         self.stones = {}    #pos => stone
         self.stack = []     #stone stack
@@ -76,6 +80,9 @@ class Gobang(object):
             return True
 
         return False
+
+    def IsTie(self, x_grid, y_grid):
+        return len(self.stones) >= Gobang.GRIDS * Gobang.GRIDS
 
     def IsTakenUp(self, x_grid, y_grid):
         return self.stones.has_key(x_grid << 8 | y_grid)

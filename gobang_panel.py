@@ -5,7 +5,9 @@ import wx.lib.newevent
 import time
 
 from gobang_stone import Stone, Gobang
-from  gobang_network import GobangServer, GobangClient
+from gobang_network import GobangServer, GobangClient
+from gobang_msg import GobangMsg
+
 from my_event import MyEvent
 
 cur_dir = os.path.split(os.path.realpath(__file__))[0]
@@ -42,7 +44,22 @@ class GobangPanel(wx.Panel):
 
         self.robot_or_network = GobangPanel.ROBOT_OPT
         self.oper = {}
+
         self.is_start = False
+
+        self.other_start = False
+        self.me_start = False
+
+
+        self.turn_other = None
+        self.turn_me = None
+        self.send_time_out = None
+        self.recv_time_out = None
+        self.send_timer = None
+        self.recv_timer = None
+        self.send_start_game = None
+        self.recv_start_game = None
+
 
         self.gobang = Gobang()
 
@@ -62,7 +79,7 @@ class GobangPanel(wx.Panel):
         self.ip_addr = wx.TextCtrl(self, -1, "127.0.0.1", (420, 150), (80, 30), style = wx.ALL)
 
         self.port_static_text = wx.StaticText(self, -1, "port:", pos = (510, 150), size = (30, 30), style = wx.ALL)
-        self.port = wx.TextCtrl(self, -1, "8888", (550, 150), (50, 30), style = wx.ALL)
+        self.port = wx.TextCtrl(self, -1, "10000", (550, 150), (50, 30), style = wx.ALL)
 
         self.listen_btn = wx.Button( self, wx.ID_ANY, "Listen", (390, 200), (100, 30), 0)
         self.connect_btn = wx.Button( self, wx.ID_ANY, "Connect", (500, 200), (100, 30), 0)
@@ -107,6 +124,9 @@ class GobangPanel(wx.Panel):
         self.count_time_event = CountTimeEvent(self.GetId())
         self.Bind(self.evt_count_time, self.OnPaintTime)
 
+        PutStoneEvent, self.evt_put_stone = wx.lib.newevent.NewCommandEvent()
+        self.put_stone_event = PutStoneEvent(self.GetId())
+        self.Bind(self.evt_put_stone, self.OnPanitStone)
 
 
         self.Bind(MyEvent.EVT_TURN_OTHER, self.OnTurnOther)
@@ -171,7 +191,7 @@ class GobangPanel(wx.Panel):
         self.listen_btn.Enable(False)
         self.connect_btn.Enable(False)
 
-        self.start_btn.Enable(False)
+        self.start_btn.Enable(True)
         self.stop_btn.Enable(True)
 
 
@@ -203,62 +223,24 @@ class GobangPanel(wx.Panel):
     def OnTimer(self, evt):
         self.count -= 1
         if self.count < 0:
-            self.gobang.RandomStone(self.who_do)
-            if self.robot_or_network == GobangPanel.ROBOT_OPT:
-                if self.who_do == self.my_color:
-                    self.GetEventHandler().ProcessEvent(self.evt_turn_other)
-                else:
-                    self.GetEventHandler().ProcessEvent(self.evt_turn_me)
-            else:
-                # TODO
-                print "network"
-
+            self.count = GobangPanel.TIME_OUT
+            (x_grid, y_grid) = self.gobang.RandomStone(self.who_do)
+            self.send_time_out(x_grid, y_grid)
+        else:
+            self.send_timer(self.count)
         wx.PostEvent(self.GetEventHandler(), self.count_time_event)
-        # wx.Post(self, self.count_time_event)
+
 
     def OnTurnOther(self, evt):
-        print "turn other"
-        self.who_do = not self.my_color
-
-        # wx.PostEvent(self, wx.PyCommandEvent(wx.wxEVT_ERASE_BACKGROUND))
-
-        self.timer_other.Stop()
-        self.Refresh()
-
-        self.count = GobangPanel.TIME_OUT
-        self.timer_other.Start(1000)
-        if self.robot_or_network == GobangPanel.ROBOT_OPT:
-            self.gobang.RobotStone(self.who_do)
-            self.Refresh()
-            if self.who_do != self.my_color:
-                print "============="
-                self.GetEventHandler().ProcessEvent(self.evt_turn_me)
+        self.turn_other(evt.args[0], evt.args[1])
 
 
     def OnTurnMe(self, evt):
-        print "turn me"
-        self.who_do = self.my_color
-
-        self.timer_other.Stop()
-        self.count = GobangPanel.TIME_OUT
-
-        # wx.PostEvent(self, wx.PyCommandEvent(wx.wxEVT_ERASE_BACKGROUND))
-        self.Refresh()
-        if self.robot_or_network == GobangPanel.ROBOT_OPT:
-            self.timer_other.Start(1000)
-            self.count = GobangPanel.TIME_OUT
-        else:
-            # TODO
-            print "NETWORK"
-
-
-
-    def RobotOrNetwork(self):
-        # TODO
-        print "hello"
+        self.turn_me(evt.args[0], evt.args[1])
 
 
     def OnClose(self, evt):
+        wx.PostEvent(self.stop_btn, wx.PyCommandEvent(wx.EVT_BUTTON.typeId, self.stop_btn.GetId()))
         self.timer.Close()
         self.timer.Destroy()
 
@@ -269,22 +251,34 @@ class GobangPanel(wx.Panel):
         pos = evt.GetPosition()
         (x_grid, y_grid) = self.GetGridOrient(pos.x, pos.y)
         if self.gobang.PutStone(x_grid, y_grid, self.who_do):
-            if self.gobang.IsFive(x_grid, y_grid):
-                wx.PostEvent(self.stop_btn.GetEventHandler(), EVT_BUTTON)
-
+            self.evt_turn_other.args = (x_grid, y_grid)
             self.GetEventHandler().ProcessEvent(self.evt_turn_other)
-            self.Refresh()
+            wx.PostEvent(self.GetEventHandler(), self.put_stone_event)
+
+            self.GetResult(x_grid, y_grid)
+            # self.Refresh()
 
 
 
     def OnRobotRadio(self, evt):
         self.robot_or_network = GobangPanel.ROBOT_OPT
         self.InitSelectRobot()
+        self.turn_other = self.RobotTurnOther
+        self.turn_me = self.NetworkTurnMe
 
 
     def OnNetWorkRadio(self, evt):
         self.robot_or_network = GobangPanel.NETWORK_OPT
         self.InitSelectNetwork()
+        self.turn_other = self.NetworkTurnOther
+        self.turn_me = self.NetworkTurnMe
+        self.recv_time_out = self.RecvNetworkTimeOut
+        self.send_time_out = self.SendNetworkTimeOut
+        self.recv_timer = self.RecvNetworkTimer
+        self.send_timer = self.SendNetworkTimer
+        self.send_start_game = self.SendNetworkStartGame
+        self.recv_start_game = self.RecvNetworkStartGame
+
 
 
     def OnEraseBackground(self, evt):
@@ -298,14 +292,12 @@ class GobangPanel(wx.Panel):
         if False == self.is_start:
             dc.Clear()
 
-        if None != self.who_do:
-            print "%d brush" %(self.who_do)
 
         bmp = wx.Bitmap("res/bg.bmp")
         dc.DrawBitmap(bmp, 0, 0)
 
         for (key, stone) in self.gobang.stones.items():
-            bmp = wx.Bitmap("res/blackstone.bmp" if Stone.WHITE == stone.color else "res/whitestone.bmp")
+            bmp = wx.Bitmap("res/blackstone.bmp" if Stone.BLACK == stone.color else "res/whitestone.bmp")
             dc.DrawBitmap(bmp, (stone.x_grid + 1) * GobangPanel.FACTOR, (stone.y_grid + 1) * GobangPanel.FACTOR)
 
         dc.DrawBitmap(self.digit_bmps[0 if self.count < 10 else self.count / 10], 400, 0)
@@ -316,6 +308,11 @@ class GobangPanel(wx.Panel):
             dc = evt.GetDC()
         except:
             dc = wx.ClientDC(self)
+
+        if not dc:
+            dc = wx.ClientDC(self)
+            rect = self.GetUpdateRegion().GetBox()
+            dc.SetClippingRect(rect)
 
         if len(self.gobang.stack) > 0:
             stone = self.gobang.stack[-1]
@@ -368,28 +365,24 @@ class GobangPanel(wx.Panel):
 
 
     def OnConnect(self, evt):
+        self.InitListenOrConnectCtrl()
         ip = self.ip_addr.GetValue()
         port = self.port.GetValue()
         self.network = GobangClient(ip, port, self)
+        self.status_static.SetLabel("connect ...")
         self.network.start()
 
-        self.status_static.SetLabel("connect ...")
+
 
     def OnStart(self, evt):
         self.InitStartCtrl()
 
-        if GobangPanel.ROBOT_OPT == self.robot_or_network:
-            self.my_color = Gobang.RandomOrder()
-            self.who_do = Stone.WHITE
+        if GobangPanel.NETWORK_OPT == self.robot_or_network:
+            self.me_start = True
+            self.network.send(GobangMsg(GobangMsg.START_MSG_TYPE))
 
-            self.is_start = True
+        self.StartGame()
 
-            if self.who_do == self.my_color:
-                self.evt_turn_me.set_args(None)
-                self.GetEventHandler().ProcessEvent(self.evt_turn_me)
-            else:
-                self.evt_turn_other.set_args(None)
-                self.GetEventHandler().ProcessEvent(self.evt_turn_other)
 
 
     def OnStop(self, evt):
@@ -402,3 +395,171 @@ class GobangPanel(wx.Panel):
         self.is_start = False
 
         wx.PostEvent(self.GetEventHandler(), self.count_time_event)
+
+        if self.robot_or_network == self.NETWORK_OPT:
+            self.network.stop()
+
+
+    def OtherStart(self):
+        self.other_start = True
+        self.status_static.SetLabel("others start game")
+
+        self.StartGame()
+
+    def OtherStop(self):
+        self.other_start = False
+
+        self.me_start = False
+
+    def RobotTurnMe(self):
+        print "robot turn me"
+
+    def Color(self, color):
+        if color == Stone.WHITE:
+            return "white"
+        return "black"
+
+    def Port(self, status):
+        if status == True:
+            return "server"
+        else:
+            return "client"
+
+    def GetResult(self, x_grid, y_grid):
+        ret = -1
+        enemy = -1
+        if self.gobang.IsFive(x_grid, y_grid):
+            ret = Gobang.SUCCESS
+            enemy = Gobang.FAILED
+        if self.gobang.IsTie(x_grid, y_grid):
+            ret = Gobang.TIED
+            enemy = Gobang.TIED
+
+        if -1 != ret:
+            self.network.send(GobangMsg(GobangMsg.RESULT_MSG_TYPE, [enemy]))
+            self.Result(ret)
+
+
+    def NetworkTurnMe(self, x_grid, y_grid):
+        if None != x_grid and None != y_grid:
+            self.gobang.PutStone(x_grid, y_grid, not self.my_color)
+            print "%s, put down:%s" %(self.Port(not self.network.IS_LISTENER), self.Color(not self.my_color))
+            wx.PostEvent(self.GetEventHandler(), self.put_stone_event)
+
+            self.GetResult(x_grid, y_grid)
+
+            # self.Refresh()
+
+        self.timer_other.Stop()
+        self.who_do = self.my_color
+
+    def RobotTurnOther(self, x_grid, y_grid):
+        print "RobotTurnOther"
+
+    def NetworkTurnOther(self, x_grid, y_grid):
+        self.count = GobangPanel.TIME_OUT
+        self.timer_other.Start()
+        self.who_do = not self.my_color
+        self.network.send(GobangMsg(GobangMsg.TURN_ON_OTHER, [x_grid, y_grid]))
+
+    def RobotTimeOut(self, x_grid, y_grid):
+        print "hello"
+
+    def NetworkTimeOut(self, x_grid, y_grid):
+        self.timer_other.Start()
+        self.network.send(GobangMsg(GobangMsg.TIMEOUT_MSG_TYPE, [x_grid, y_grid]))
+
+    def RecvRobotTimeOut(self, x_grid, y_grid):
+        print "hello"
+
+    def RecvNetworkTimeOut(self, x_grid, y_grid):
+        self.gobang.PutStone(x_grid, y_grid, self.my_color)
+        print "%s, put down %s" %(self.Port(self.network.IS_LISTENER), self.Color(self.my_color))
+        wx.PostEvent(self.GetEventHandler(), self.put_stone_event)
+        # self.Refresh()
+        self.evt_turn_other.set_args((x_grid, y_grid))
+        self.GetEventHandler().ProcessEvent(self.evt_turn_other)
+
+        self.count = GobangPanel.TIME_OUT
+        wx.PostEvent(self.GetEventHandler(), self.count_time_event)
+
+        self.GetResult(x_grid, y_grid)
+
+
+    def SendRobotTimeOut(self, x_grid, y_grid):
+        print "hello"
+
+    def SendNetworkTimeOut(self, x_grid, y_grid):
+        self.network.send(GobangMsg(GobangMsg.TIMEOUT_MSG_TYPE, [x_grid, y_grid]))
+
+    def RecvRobotTimer(self, count):
+        self.count = count
+        wx.PostEvent(self.GetEventHandler(), self.count_time_event)
+
+    def RecvNetworkTimer(self, count):
+        self.count = count
+        wx.PostEvent(self.GetEventHandler(), self.count_time_event)
+
+
+    def SendRobotTimer(self, count):
+        self.count = count
+        wx.PostEvent(self.GetEventHandler(), count)
+
+
+    def SendNetworkTimer(self, count):
+        self.network.send(GobangMsg(GobangMsg.TIMER_MSG_TYPE, [count]))
+
+
+    def StartGame(self):
+        if GobangPanel.ROBOT_OPT == self.robot_or_network or \
+           (GobangPanel.NETWORK_OPT == self.robot_or_network and self.network.IS_LISTENER and \
+             True == self.me_start and True == self.other_start):
+            self.my_color = Gobang.RandomOrder()
+            self.who_do = Stone.WHITE
+            self.is_start = True
+
+            self.send_start_game(not self.my_color)
+
+
+        if None != self.who_do and None != self.my_color:
+            if self.who_do == self.my_color:
+                self.evt_turn_me.set_args((None, None))
+                self.GetEventHandler().ProcessEvent(self.evt_turn_me)
+            else:
+                self.evt_turn_other.set_args((None, None))
+                self.GetEventHandler().ProcessEvent(self.evt_turn_other)
+
+    def SendNetworkStartGame(self, my_color):
+        self.network.send(GobangMsg(GobangMsg.START_GAME_MSG_TYPE, [my_color]))
+
+
+    def SendRobotStartGame(self, my_color):
+        print "robot"
+
+    def RecvNetworkStartGame(self, my_color):
+        self.my_color = my_color
+        self.who_do = Stone.WHITE
+        self.is_start = True
+
+        if self.my_color != self.who_do:
+            self.timer_other.Start(1000)
+
+
+    def RecvRobotStartGame(self, my_color):
+        print "robot"
+
+    def Result(self, res):
+        wx.PostEvent(self.stop_btn, wx.PyCommandEvent(wx.EVT_BUTTON.typeId, self.stop_btn.GetId()))
+        text = "you are "
+        if Gobang.SUCCESS == res:
+            text += "win!"
+        elif Gobang.FAILED == res:
+            text += "failed!"
+        elif Gobang.TIED == res:
+            text += "tied!"
+        else:
+            return;
+
+        dlg=wx.MessageDialog(None, text, "result", wx.OK)
+        result=dlg.ShowModal()
+        dlg.Destroy()

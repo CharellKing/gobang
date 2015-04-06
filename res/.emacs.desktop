@@ -1,0 +1,172 @@
+;; -*- mode: emacs-lisp; coding: emacs-mule; -*-
+;; --------------------------------------------------------------------------
+;; Desktop File for Emacs
+;; --------------------------------------------------------------------------
+;; Created Thu Feb 19 21:23:34 2015
+;; Desktop file format version 206
+;; Emacs version 24.3.1
+
+;; Global section:
+(setq desktop-missing-file-warning nil)
+(setq tags-file-name nil)
+(setq tags-table-list nil)
+(setq search-ring '("Bitmap" "GetToolbarBitmap" "__init__" "GetToolbarBitmap" "Frame" "init" "GetToolbar" "toolbar_" "GetDigitBitmap" "CountLine" "IsFive" "OnStoneDown" "timer" "Random" "IsFive" "OnStoneDown"))
+(setq regexp-search-ring nil)
+(setq register-alist nil)
+(setq file-name-history '("/home/ck/Project/Python/gogang/res" "~/.emacs.d/init-elpa.el" "~/.emacs.d/init-custom.el" "~/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-bs/fp.h" "~/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-bs/conf/fp_bs.conf" "~/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-as/fpas_server.h" "~/Code/loc_service_for_research/fp_src/public/pbrpc/server/pbrpc_server.cpp" "~/Code/loc_service_for_research/fp_src/app/ecom/elib/shifen-lib/output/include/sf_ams_ip_auth.h" "~/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-lib.bak/fploc.pb.h" "~/Code/loc_service_for_research/fp_src/public/pbrpc/output/include/pbrpc/server/pbrpc_server.h" "~/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-bs/fp_bs.h" "~/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-bs/fp_bs.cpp" "~/.emacs.d/init.el" "~/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-bs/main.cpp" "~/Project/Python/gogang/main.py" "~/.emacs.d/init-elpa.el" "~/.emacs.d/init-custom.el" "~/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-bs/fp.h" "~/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-bs/conf/fp_bs.conf" "~/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-as/fpas_server.h" "~/Code/loc_service_for_research/fp_src/public/pbrpc/server/pbrpc_server.cpp" "~/Code/loc_service_for_research/fp_src/app/ecom/elib/shifen-lib/output/include/sf_ams_ip_auth.h" "~/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-lib.bak/fploc.pb.h" "~/Code/loc_service_for_research/fp_src/public/pbrpc/output/include/pbrpc/server/pbrpc_server.h" "~/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-bs/fp_bs.h" "~/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-bs/fp_bs.cpp" "~/.emacs.d/init.el" "~/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-bs/main.cpp" "/home/ck/Project/Python/gogang/main.py" "/home/ck/Project/Python/FiveChess/main.py" "/home/ck/Project/Python/FiveChess/five_chess.py" "~/Project/Python/FiveChess/main.py" "/home/ck/Project/Python/FiveChess/five_chess.py" "/home/ck/Project/Python/FiveChess/main.py" "/home/ck/\221\271\244\221\263\314/Python/FiveChess/main.py" "/home/ck/\221\271\244\221\263\314/Python/FiveChess/FiveChessPanel.py" "/home/ck/\221\271\244\221\263\314/Python/FiveChess/five_chess.py" "/home/ck/\221\271\244\221\263\314/Python/FiveChess/main.py" "/home/ck/\221\271\244\221\263\314/Python/FiveChess/five_chess.py" "/home/ck/\221\271\244\221\263\314/Python/FiveChess/main.py" "/home/ck/\221\271\244\221\263\314/Python/FiveChess/five_chess.py" "/home/ck/\221\271\244\221\263\314/Python/FiveChess/FiveChess.fbp" "~/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-lib.bak/fploc.pb.h" "/home/ck/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-bs/fp_bs.h" "/home/ck/Code/loc_service_for_research/fp_src/public/pbrpc/server/pbrpc_server.cpp" "~/Code/loc_service_for_research/fp_src/public/pbrpc/output/include/pbrpc/server/pbrpc_server.h" "~/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-as/fpas_server.h" "~/Code/loc_service_for_research/fp_src/app/ecom/elib/shifen-lib/output/include/sf_ams_ip_auth.h" "/home/ck/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-bs/conf/fp_bs.conf" "/home/ck/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-bs/conf/fb_bs.conf" "/home/ck/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-bs/main.cpp" "~/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-bs/fp.h" "/home/ck/\221\271\244\221\263\314/Python/test.py" "~/.emacs.d/init-elpa.el" "~/.emacs.d/init.el" "~/.emacs.d/init-custom.el" "/home/ck/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-bs/fp_bs.cpp" "/home/ck/.emacs.d/.git/COMMIT_EDITMSG"))
+
+;; Buffer section -- buffers listed in same order as in buffer list:
+(desktop-create-buffer 206
+  "/home/ck/Project/Python/gogang/main.py"
+  "main.py"
+  'python-mode
+  '(linum-mode hi-lock-mode auto-complete-mode yas-minor-mode company-mode smartparens-mode TeX-PDF-mode projectile-mode magit-auto-revert-mode hs-minor-mode)
+  6777
+  '(7634 nil)
+  nil
+  nil
+  '((tab-width . 8) (indent-tabs-mode) (buffer-file-coding-system . utf-8-unix) (truncate-lines)))
+
+(desktop-create-buffer 206
+  "/home/ck/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-bs/main.cpp"
+  "main.cpp"
+  'c++-mode
+  '(abbrev-mode linum-mode hi-lock-mode auto-complete-mode yas-minor-mode autopair-mode company-mode function-args-mode ws-butler-mode smartparens-mode ggtags-mode TeX-PDF-mode projectile-mode doxymacs-mode magit-auto-revert-mode hs-minor-mode)
+  160
+  '(nil nil)
+  nil
+  nil
+  '((tab-width . 4) (indent-tabs-mode . t) (buffer-file-coding-system . chinese-iso-8bit-dos)))
+
+(desktop-create-buffer 206
+  "/home/ck/.emacs.d/init.el"
+  "init.el"
+  'emacs-lisp-mode
+  '(linum-mode hi-lock-mode auto-complete-mode yas-minor-mode autopair-mode company-mode smartparens-mode flymake-mode TeX-PDF-mode projectile-mode magit-auto-revert-mode hs-minor-mode eldoc-mode)
+  1846
+  '(109 nil)
+  nil
+  nil
+  '((buffer-file-coding-system . utf-8-unix) (overwrite-mode)))
+
+(desktop-create-buffer 206
+  "/home/ck/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-bs/fp_bs.cpp"
+  "fp_bs.cpp"
+  'c++-mode
+  '(abbrev-mode linum-mode hi-lock-mode auto-complete-mode yas-minor-mode autopair-mode company-mode function-args-mode ws-butler-mode smartparens-mode ggtags-mode TeX-PDF-mode projectile-mode doxymacs-mode magit-auto-revert-mode hs-minor-mode)
+  14001
+  '(14332 nil)
+  nil
+  nil
+  '((tab-width . 4) (indent-tabs-mode . t) (buffer-file-coding-system . utf-8-unix) (overwrite-mode) (truncate-lines)))
+
+(desktop-create-buffer 206
+  "/home/ck/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-bs/fp_bs.h"
+  "fp_bs.h"
+  'c-mode
+  '(abbrev-mode linum-mode hi-lock-mode auto-complete-mode yas-minor-mode autopair-mode company-mode function-args-mode ws-butler-mode smartparens-mode ggtags-mode TeX-PDF-mode projectile-mode doxymacs-mode magit-auto-revert-mode hs-minor-mode)
+  1424
+  '(nil nil)
+  nil
+  nil
+  '((tab-width . 4) (indent-tabs-mode . t) (buffer-file-coding-system . chinese-iso-8bit-unix)))
+
+(desktop-create-buffer 206
+  "/home/ck/Code/loc_service_for_research/fp_src/public/pbrpc/output/include/pbrpc/server/pbrpc_server.h"
+  "pbrpc_server.h"
+  'c-mode
+  '(abbrev-mode linum-mode hi-lock-mode auto-complete-mode yas-minor-mode autopair-mode company-mode function-args-mode ws-butler-mode smartparens-mode ggtags-mode TeX-PDF-mode projectile-mode doxymacs-mode magit-auto-revert-mode hs-minor-mode)
+  1044
+  '(748 nil)
+  nil
+  nil
+  '((tab-width . 4) (indent-tabs-mode . t) (buffer-file-coding-system . utf-8-unix)))
+
+(desktop-create-buffer 206
+  "/home/ck/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-lib.bak/fploc.pb.h"
+  "fploc.pb.h"
+  'c-mode
+  '(abbrev-mode linum-mode hi-lock-mode auto-complete-mode yas-minor-mode autopair-mode company-mode function-args-mode ws-butler-mode smartparens-mode ggtags-mode TeX-PDF-mode projectile-mode doxymacs-mode magit-auto-revert-mode hs-minor-mode)
+  28247
+  '(nil nil)
+  nil
+  nil
+  '((tab-width . 4) (indent-tabs-mode) (buffer-file-coding-system . utf-8-unix)))
+
+(desktop-create-buffer 206
+  "/home/ck/Code/loc_service_for_research/fp_src/app/ecom/elib/shifen-lib/output/include/sf_ams_ip_auth.h"
+  "sf_ams_ip_auth.h"
+  'c-mode
+  '(abbrev-mode linum-mode hi-lock-mode auto-complete-mode yas-minor-mode autopair-mode company-mode function-args-mode ws-butler-mode smartparens-mode ggtags-mode TeX-PDF-mode projectile-mode doxymacs-mode magit-auto-revert-mode hs-minor-mode)
+  1619
+  '(1844 nil)
+  nil
+  nil
+  '((tab-width . 4) (indent-tabs-mode . t) (buffer-file-coding-system . utf-8-unix)))
+
+(desktop-create-buffer 206
+  "/home/ck/Code/loc_service_for_research/fp_src/public/pbrpc/server/pbrpc_server.cpp"
+  "pbrpc_server.cpp"
+  'c++-mode
+  '(abbrev-mode linum-mode hi-lock-mode auto-complete-mode yas-minor-mode autopair-mode company-mode function-args-mode ws-butler-mode smartparens-mode ggtags-mode TeX-PDF-mode projectile-mode doxymacs-mode magit-auto-revert-mode hs-minor-mode)
+  578
+  '(589 nil)
+  nil
+  nil
+  '((tab-width . 4) (indent-tabs-mode) (buffer-file-coding-system . utf-8-unix)))
+
+(desktop-create-buffer 206
+  "/home/ck/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-as/fpas_server.h"
+  "fpas_server.h"
+  'c-mode
+  '(abbrev-mode linum-mode hi-lock-mode auto-complete-mode yas-minor-mode autopair-mode company-mode function-args-mode ws-butler-mode smartparens-mode ggtags-mode TeX-PDF-mode projectile-mode doxymacs-mode magit-auto-revert-mode hs-minor-mode)
+  979
+  '(nil nil)
+  nil
+  nil
+  '((tab-width . 4) (indent-tabs-mode . t) (buffer-file-coding-system . utf-8-unix)))
+
+(desktop-create-buffer 206
+  "/home/ck/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-bs/conf/fp_bs.conf"
+  "fp_bs.conf"
+  'conf-colon-mode
+  '(linum-mode hi-lock-mode yas-minor-mode autopair-mode company-mode smartparens-mode TeX-PDF-mode projectile-mode magit-auto-revert-mode)
+  33
+  '(nil nil)
+  nil
+  nil
+  '((buffer-file-coding-system . utf-8-unix)))
+
+(desktop-create-buffer 206
+  "/home/ck/Code/loc_service_for_research/fp_src/app/search/lbs-geolocation/location/server/fp-bs/fp.h"
+  "fp.h"
+  'c-mode
+  '(abbrev-mode linum-mode hi-lock-mode auto-complete-mode yas-minor-mode autopair-mode company-mode function-args-mode ws-butler-mode smartparens-mode ggtags-mode TeX-PDF-mode projectile-mode doxymacs-mode magit-auto-revert-mode hs-minor-mode)
+  1
+  '(nil nil)
+  nil
+  nil
+  '((tab-width . 4) (indent-tabs-mode . t) (buffer-file-coding-system . utf-8-unix)))
+
+(desktop-create-buffer 206
+  "/home/ck/.emacs.d/init-custom.el"
+  "init-custom.el"
+  'emacs-lisp-mode
+  '(linum-mode hi-lock-mode auto-complete-mode yas-minor-mode autopair-mode company-mode smartparens-mode flymake-mode TeX-PDF-mode projectile-mode magit-auto-revert-mode hs-minor-mode eldoc-mode)
+  1441
+  '(937 nil)
+  nil
+  nil
+  '((buffer-file-coding-system . utf-8-unix) (overwrite-mode)))
+
+(desktop-create-buffer 206
+  "/home/ck/.emacs.d/init-elpa.el"
+  "init-elpa.el"
+  'emacs-lisp-mode
+  '(linum-mode hi-lock-mode auto-complete-mode yas-minor-mode autopair-mode company-mode smartparens-mode flymake-mode TeX-PDF-mode projectile-mode magit-auto-revert-mode hs-minor-mode eldoc-mode)
+  1470
+  '(946 nil)
+  nil
+  nil
+  '((buffer-file-coding-system . utf-8-unix) (overwrite-mode)))
+
