@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #-*-coding:utf-8-*-
 
-class RobotPlay(object):
+class RobotRole(object):
     def __init__(self, robot_in, robot_out):
         self.robot_in = robot_in
         self.robot_out = robot_out

@@ -2,6 +2,7 @@
 #-*-coding:utf-8-*-
 
 import sys
+import re
 
 from const_str import ConstStr
 from human_role import HumanRole
@@ -12,29 +13,34 @@ class CmdMsg(object):
     START_GAME = "start_game"
     STOP_GAME = "stop_game"
     PUT_DOWN = "put_down"
+    HOLD = "hold"
+    ATTENT = "attent"
     EXIT_MODE = "exit_mode"
     EXIT = "exit"
     CHESS = "show_chess"
     HELP = "show_help"
 
-    def __init_(self, cmd_msg):
-        self.contents = cmd_msg.splite(' ')
+    def __init__(self, cmd_msg):
+        self.contents = cmd_msg.split(" ")
 
 
 class CmdController(object):
-    def __init__(self, cmd_out):
-        self.nickname = ""   #玩家昵称
-        self.mode = ""      #模式人机对弈与网络对弈
-        self.cmd_out = cmd_out
+    ROBOTPLAY_MODE = "人机对弈"
+    NETPLAY_MODE   = "网络对弈"
+    NETWORK_PORT = 8889
+
+    def __init__(self):
+        self.nickname = None   #玩家昵称
+        self.mode = None      #模式人机对弈与网络对弈
 
         self.roles = [None, None]
 
-        self.cmd_msg = ""
-
         self.handles = {CmdMsg.JOIN_MODE: self.join_mode_with_promt,
                         CmdMsg.EXIT_MODE: self.exit_mode_with_promt,
+                        CmdMsg.HOLD: self.hold_with_promt,
+                        CmdMsg.ATTENT: self.attent_with_promt,
                         CmdMsg.START_GAME: self.start_game_with_promt,
-                        CmdMsg.STOP_GAME: self.exit_game_with_promt,
+                        CmdMsg.STOP_GAME: self.stop_game_with_promt,
                         CmdMsg.PUT_DOWN: self.put_down_with_promt,
                         CmdMsg.EXIT: self.exit_with_promt,
                         CmdMsg.CHESS: self.show_chess,
@@ -44,167 +50,208 @@ class CmdController(object):
         self.is_starting = False   #是否正在游戏
 
 
-    def get_status(self):
-        status = ""
-        if "" != self.mode:
-            status += self.mode
-        if True == self.is_starting:
-            self += ", 运行中"
+    def input_promt(self):
+        return "%s@%s [%s]$" %(str(self.nickname), str(self.mode), "start" if self.is_starting else "stop")
+
+    def input(self, promt):
+        return raw_input("%s %s>" %(self.input_promt(), promt)).strip('\n')
+
+    def output_promt(self):
+        return "哈喽, %s!" %(str(self.nickname))
+
+    def output(self, promt):
+        print "%s %s." %(self.output_promt(), promt)
+
+    def input_nickname(self):
+        while None == self.nickname or "" == self.nickname:
+            self.nickname = self.input("请输入您的昵称")
+
+        self.output("欢迎进入五子棋的世界")
+
 
     def join_mode_with_promt(self, cmd_msg):
-        if len(cmd_msg) <= 1 or (cmd_msg.contents[1] != ConstStr.robotplay_mode and cmd_msg.contents[1] != ConstStr.netplay_mode):
-            cmd_out.output("[cmd_error], 'join_mode' 后面应该紧跟正确的模式名称[%s|%s]" %(self.greet(), ConstStr.robotplay_mode,
-                                                                                ConstStr.netplay_mode, ConstStr.robotplay_mode))
-        elif cmd_msg.contents[1] != self.mode:
-            if ('y' == raw_input("%s 你正处于[%s]状态,是否要离开?(y-yes, n-no)").strip('\n')):
+        if len(cmd_msg.contents) <= 1 or \
+          (cmd_msg.contents[1] != CmdController.NETPLAY_MODE and \
+           cmd_msg.contents[1] != ConstStr.ROBOTPLAY_MODE):
+            self.output("[join_mode] 后面应该紧跟正确的模式名称[%s|%s]" %(CmdController.NETPLAY_MODE, CmdController.ROBOTPLAY_MODE))
+        elif None != self.mode and cmd_msg.contents[1] != self.mode:
+            if ('y' == self.input("您正处于[%s]模式, 是否要离开(y-yes, n-no)" %(self.mode))):
                 self.join_mode_without_promt(cmd_msg)
+        else:
+            self.join_mode_without_promt(cmd_msg)
 
     def join_mode_without_promt(self, cmd_msg):
-        if True == self.is_starting:
-            print "xxx"
-
-        self.is_starting = False
+        if cmd_msg.contents[1] != self.mode:
+            self.is_starting = False
 
         self.mode = cmd_msg.contents[1]
 
-        if ConstStr.robotplay_mode == self.mode:
-            self.run_robotplay()
-        else:
-            self.run_netplay()
-
-
 
     def exit_mode_with_promt(self, cmd_msg):
-        if "" != self.mode and
-            ('y' == raw_input("%s 你正处于[%s]状态,是否要离开?(y-是, n-否)>" %(self.greet(), self.status())).strip('\n')):
+        if None != self.mode:
+            if ('y' == self.input("您正处于[%s]模式, 是否要离开(y-yes, n-no)" %(self.mode))):
+                self.exit_mode_without_promt(cmd_msg)
+        else:
             self.exit_mode_without_promt(cmd_msg)
 
 
     def exit_mode_without_promt(self, cmd_msg):
-        if True == self.is_staring:
-            print "xxx"
-
         self.is_starting = False
-        self.mode = ""
+        self.mode = None
+
+    def hold_with_promt(self, cmd_msg):
+        if True == self.is_starting:
+            self.output("游戏正开始中")
+        elif CmdController.ROBOTPLAY_MODE == self.mode:
+            self.output("您正处于[%s]模式" %(self.mode))
+        else:
+            if False == self.hold_without_promt(cmd_msg):
+                self.output("主持网络对弈失败")
+            else:
+                self.output("主持网络对弈成功")
+
+
+    def hold_without_promt(self, cmd_msg):
+        self.mode = CmdController.NETPLAY_MODE
+
+        port = CmdController.NETWORK_PORT
+        if len(cmd_msg.contents) >= 2 and False == CmdController.is_int(cmd_msg.contents[1]):
+            return False
+        else:
+            port = int(cmd_msg.contents[1])
+
+        self.is_network_running = True
+        return True
+
+    def attent_with_promt(self, cmd_msg):
+        if True == self.is_starting:
+            self.output("游戏正开始中")
+        elif CmdController.ROBOTPLAY_MODE == self.mode:
+            self.output("您正处于[%s]模式" %(self.mode))
+        else:
+            if False == self.attent_without_promt(cmd_msg):
+                self.output("加入网络对弈失败")
+            else:
+                self.output("加入网络对弈成功")
+
+    def attent_without_promt(self, cmd_msg):
+        self.mode = CmdController.NETPLAY_MODE
+
+        if len(cmd_msg.contents) < 2 or \
+            False == CmdController.is_ip(cmd_msg.contents[1]) or \
+            (len(cmd_msg.contents) >= 3 and False == CmdController.is_int(cmd_msg.contents[2])):
+            return False
+
+
+        host = cmd_msg.contents[1]
+
+        port = CmdController.NETWORK_PORT
+        if len(cmd_msg.contents) >= 3:
+            port = int(cmd_msg.contents[2])
+
+        self.is_network_running = True
+        return True
+
 
     def start_game_with_promt(self, cmd_msg):
-        if "" == self.mode:
-            self.output("%s 还没有进入任何模式", %(self.greet()))
-        elif ConstStr.netplay_mode == self.mode and False == self.is_network_running:
-            self.output("%s 您处于%s, 没有发起或者参与游戏" %(self.greet(), self.mode))
+        if None == self.mode:
+            self.output("您还没有进入任何模式")
+        elif CmdController.NETPLAY_MODE == self.mode and False == self.is_network_running:
+            self.output("您处于%s模式, 还没有发起或者参与游戏" %(self.mode))
         else:
             self.start_game_without_promt(cmd_msg)
 
     def start_game_without_promt(self, cmd_msg):
-        print "xxx"
+        self.is_starting = True
 
     def stop_game_with_promt(self, cmd_msg):
-        if True == is_starting:
-            self.output("%s 是否停止游戏" %(self.greet()))
-            self.stop_game_without_promt(cmd_msg)
+        if True == self.is_starting:
+            if "y" == self.input("是否停止游戏(y-是, n-否)"):
+                self.stop_game_without_promt(cmd_msg)
 
 
     def stop_game_without_promt(self, cmd_msg):
-        print "xxxx"
         self.is_starting = False
 
-    def is_int(self, str):
+    @staticmethod
+    def is_int(str):
         try:
             int(str)
             return True
         except:
             return False
 
-    def put_down_with_promt(self, cmd_msg):
-        if False == is_starting:
-            print "%s 游戏还没开始运行" %(self.greet())
-        elif len(cmd_msg) < 3 or False == self.is_int(cmd_msg[1]) or False == self.is_int(cmd_msg[2]):
-            print "%s put_down后面紧跟行号和列号" %(self.greet())
+    @staticmethod
+    def is_ip(str):
+        values = re.match(r"^(((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(:[1-9]\d*){0,1}).*" , str)
+        if None == values:
+            return False
         else:
-            self.put_down_with_promt(cmd_msg)
+            return True
+
+    def put_down_with_promt(self, cmd_msg):
+        if False == self.is_starting:
+            self.output("游戏还没开始运行")
+        elif len(cmd_msg.contents) < 3 or \
+            False == CmdController.is_int(cmd_msg.contents[1]) or \
+            False == CmdController.is_int(cmd_msg.contents[2]):
+            self.output("[put_down] 后面紧跟行号和列号")
+        else:
+            self.put_down_without_promt(cmd_msg)
 
 
     def put_down_without_promt(self, cmd_msg):
-        print "xxxx"
+        row = int(cmd_msg.contents[1])
+        col = int(cmd_msg.contents[2])
 
 
     def exit_with_promt(self, cmd_msg):
-        if True == is_starting and
-            ('y' == raw_input("%s 你正处于[%s]状态,是否要离开?(y-是, n-否)>" %(self.greet(), self.status())).strip('\n')):
-             exit_without_promt(self, cmd_msg)
+        if True == self.is_starting and 'y' == self.input("您正处于运行状态,是否要离开?(y-是, n-否)"):
+            self.output("拜拜!")
+            self.exit_without_promt(cmd_msg)
+        else:
+            self.output("拜拜!")
+            self.exit_without_promt(cmd_msg)
+
 
     def exit_without_promt(self, cmd_msg):
         self.is_starting = False
         self.is_running = False
 
+        exit(0)
+
     def show_chess(self, cmd_msg):
-        if False == is_staring:
-            self.output("%s 游戏还没有开始" %(self.greet()))
+        if False == self.is_starting:
+            self.output("游戏还没开始")
         else:
             print "xxxx"
 
-
     def show_help(self, cmd_msg):
-        print "%s\n%s\n%s\n" %("join_mode   进入模式(人机对弈|网络对弈)\n",
-                               "exit_mode   退出模式\n",
-                               "start_game  开始游戏\n",
-                               "stop_game   停止游戏\n",
-                               "show_chess  显示棋局\n"
-                               "put_down    落子(row, col)\n",
-                               "exit        退出游戏\n",
-                               "help        帮助")
-
-    def greet(self):
-        return "哈喽, %s!" %(self.nickname)
-
-    def output(self, line):
-        cmd_out.write(str)
-        cmd_out.flush()
-
-    def input_nickname(self):
-        while None == self.nickname or "" == self.nickname:
-            self.nickname = raw_input("请输入您的昵称>").strip('\n')
-        self.output("%s 您的昵称是%s!\n" %(self.greet(), self.nickname))
-
-
-    def select_mode(self):
-        while None == self.mode or (ConstStr.netplay_mode != self.mode and ConstStr.robotplay_mode != self.mode):
-            self.mode = raw_input("%s 请选择模式[%s|%s]>" %(self.greet(), ConstStr.netplay_mode, ConstStr.robotplay_mode)).strip('\n')
-        self.output("%s 您选择的是%s!\n" %(self.greet(), self.mode))
-
-        if ConstStr.netplay_mode == self.mode:
-            self.run_netplay()
-        else:
-            self.run_robotplay()
-
-    def cmd_promt(self):
-        cmd_msg = None
-        while "" == self.cmd_msg:
-            self.cmd_msg = raw_input("%s 请输入命令:>" %(self.greet())).strip('\n')
-
-        return CmdMsg(self.cmd_msg)
+        print "%s%s%s%s%s%s%s%s%s%s" %("join_mode   进入模式(人机对弈|网络对弈)\n",
+                                       "exit_mode   退出模式\n",
+                                       "hold        主持游戏(端口)\n",
+                                       "attend      参加游戏(ip, 端口)\n",
+                                       "start_game  开始游戏\n",
+                                       "stop_game   停止游戏\n",
+                                       "show_chess  显示棋局\n",
+                                       "put_down    落子(row, col)\n",
+                                       "exit        退出游戏\n",
+                                       "help        帮助\n")
 
 
     def interact(self):
         while(True):
-            cmd_msg = cmd_promt(self)
-            if True == handles.has_key(cmd_msg.content[0]):
-                handles[cmd_msg.content[0]](cmd_msg)
+            line = self.input("")
+            if "" == line:
+                continue
+
+            cmd_msg = CmdMsg(line)
+            if False == self.handles.has_key(cmd_msg.contents[0]):
+                self.output("无效的命令")
             else:
-                self.output("%s 符号\n" %(self.greet())
-                self.deal_help(cmd_msg)
+                self.handles[cmd_msg.contents[0]](cmd_msg)
 
-
-    def run_robotplay(self):
-        human_out , robot_in = popen2("human_out_robot_in", "wr");
-        robot_out,  human_in = popen2("robot_out, human_in", "wr")
-
-        self.roles[0] = HumanRole(human_in, human_out)
-        self.roles[1] = RobotRole(robot_in, robot_out)
-
-
-    def run_netplay(self):
-        print "hello"
 
     def run(self):
         self.input_nickname()
+        self.interact()
