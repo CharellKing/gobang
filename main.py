@@ -1,26 +1,31 @@
 #!/usr/bin/python
-
-# coding=utf-8
+#-*-coding:utf-8-*-
 
 import os
 import sys
-import wx
 
-import math
-import random
+from get_opt import GetOpt
+from cmd_controller import CmdController
 
-from gobang_frame import GobangFrame
+def usage():
+    return "usage:%s%s%s%s" %("[--cmd] 命令行模式\n",
+                              "[--gui] 图形化模式\n",
+                              "[-h] 帮助\n",
+                              "[--help] 帮助\n")
 
-cur_dir = os.path.split(os.path.realpath(__file__))[0]
+def main(script, *args):
+    opt_args = GetOpt.get_opt(usage())
 
-class Main(wx.App):
-    def __init__(self, redirect=False, filename=None):
-        wx.App.__init__(self, redirect, filename)
-        gobang_frame = GobangFrame()
-        self.SetTopWindow(gobang_frame)
-        gobang_frame.Show()
+    mode = "cmd"
+    if opt_args.has_key("--gui"):
+        mode = "gui"
 
+    controller = None
+    if "gui" == mode:
+        print "xxxxx"
+    else:
+        controller = CmdController()
+        controller.run()
 
 if __name__ == "__main__":
-    app = Main(0)
-    app.MainLoop()
+    main(*sys.argv)
