@@ -1,12 +1,15 @@
 #!/usr/bin/python
 #-*-coding:utf-8-*-
 
+import os
 import sys
 import re
+from threading import Thread
 
 from const_str import ConstStr
 from human_role import HumanRole
 from robot_role import RobotRole
+from network_service import GobangServer, GobangClient
 
 class CmdMsg(object):
     JOIN_MODE = "join_mode"
@@ -48,10 +51,22 @@ class CmdController(object):
 
         self.is_network_running = False #是否网络运行正常
         self.is_starting = False   #是否正在游戏
+        self.is_exit = False
+
+        self.interface_in = None
+        self.work_thread = None
 
 
     def input_promt(self):
-        return "%s@%s [%s]$" %(str(self.nickname), str(self.mode), "start" if self.is_starting else "stop")
+        color_str = ""
+        if None != self.roles[0] and None != self.roles[0].color:
+            color_str = "黑色" if self.roles[0].color == Stone.BLACK else "白色"
+
+        status = "stop"
+        if None != self.roles[0] and None != self.roles[0].status:
+            status = self.roles[0].status
+
+        return "%s@%s %s[%s]$" %(str(self.nickname), str(self.mode), color_str, status)
 
     def input(self, promt):
         return raw_input("%s %s>" %(self.input_promt(), promt)).strip('\n')
@@ -83,8 +98,42 @@ class CmdController(object):
     def join_mode_without_promt(self, cmd_msg):
         if cmd_msg.contents[1] != self.mode:
             self.is_starting = False
+            if self.mode == CmdController.NETPLAY_MODE:
+                self.is_running = False
 
-        self.mode = cmd_msg.contents[1]
+            self.mode = cmd_msg.contents[1]
+
+            if CmdController.ROBOTPLAY_MODE == self.mode:
+                self.deal_robot_mode()
+            else:
+                self.deal_net_mode()
+
+
+    def deal_robot_mode(self):
+        robot_in, human_out = os.pipe()
+        human_in, robot_out = os.pipe()
+        self.interface_in, human_interface_out = os.pipe()
+
+        robot_role = RobotRole(robot_in, robot_out)
+        human_role = HumanRole(human_in, human_out, human_interface_out)
+        robot_role.start()
+        human_role.start()
+        self.roles = [human_role, robot_role]
+
+
+
+    def deal_net_mode(self):
+        net_in, human_out = os.pipe()
+        human_in, net_out = os.pipe()
+        self.interface_in, human_interface_out = os.pipe()
+
+        net_role = NetRole(net_in, net_out)
+        human_role = HumanRole(human_in, human_out, human_interface_out)
+
+        net_role.start()
+        human_role.start()
+        self.roles = [human_role, net_role]
+
 
 
     def exit_mode_with_promt(self, cmd_msg):
@@ -120,6 +169,13 @@ class CmdController(object):
         else:
             port = int(cmd_msg.contents[1])
 
+        net_service = GobangServer()
+        if False == net_service.start():
+            return False
+
+        roles[2].set_service(net_service)
+        roles[2].start_service()
+
         self.is_network_running = True
         return True
 
@@ -144,7 +200,6 @@ class CmdController(object):
 
 
         host = cmd_msg.contents[1]
-
         port = CmdController.NETWORK_PORT
         if len(cmd_msg.contents) >= 3:
             port = int(cmd_msg.contents[2])
@@ -162,7 +217,10 @@ class CmdController(object):
             self.start_game_without_promt(cmd_msg)
 
     def start_game_without_promt(self, cmd_msg):
+        self.roles[0].send_start_msg()
         self.is_starting = True
+
+
 
     def stop_game_with_promt(self, cmd_msg):
         if True == self.is_starting:
@@ -252,6 +310,24 @@ class CmdController(object):
                 self.handles[cmd_msg.contents[0]](cmd_msg)
 
 
+    def work_thread(self):
+        inputs = [self.interface_in]
+        outputs = []
+        timeout = 1
+        is_exit = False
+        while False == self.is_exit:
+            readable, writable, exceptional = select.select(inputs, outputs, inputs, timeout)
+            if readable or writable or exceptional:
+                for rin in readable:
+                    line = rin.readline().strip('\n')
+                    msg = ModuleMsg().decode(line)
+                    self.output("\n%s\n%s>", msg.contents[0], self.input_promt())
+
+
     def run(self):
         self.input_nickname()
+        self.work_thread = Thread(target = self.work_thread)
         self.interact()
+        self.is_exit = False
+        self.work_thread.join()
+        self.is_exit = True

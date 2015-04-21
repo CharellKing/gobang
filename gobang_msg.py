@@ -8,6 +8,7 @@ class GobangMsg(object):
     TIME_MSG_TYPE = 2
     PUT_MSG_TYPE = 3
 
+
     def __init__(self, type = 0, content = []):
         self.type = type
         self.content = content
