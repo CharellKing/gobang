@@ -25,6 +25,7 @@ class Gobang(object):
     SUCCESS = 1
     FAILED = 2
     TIED = 3
+    UNKNOWN = 4
 
     RELAY_TIME = 5
 
@@ -36,7 +37,7 @@ class Gobang(object):
     def put_stone(self, x_grid, y_grid, color):
         if 0 <= x_grid < Gobang.GRIDS and \
             0 <= y_grid < Gobang.GRIDS and \
-            False == self.IsTakenUp(x_grid, y_grid):
+            False == self.is_taken_up(x_grid, y_grid):
             self.stones[x_grid << 8 | y_grid] = Stone(x_grid, y_grid, color)
             self.stack.append(self.stones[x_grid << 8 | y_grid])
             return True
@@ -65,7 +66,7 @@ class Gobang(object):
 
         return count
 
-    def IsFive(self, x_grid, y_grid):
+    def is_five(self, x_grid, y_grid):
         # \
         if self.count_line(x_grid, y_grid, 1, 1) >= 5:
             return True

@@ -14,6 +14,15 @@ class ModuleMsg(object):
     PUT_MSG_TYPE = 4
     PROMT_MSG_TYPE = 5
     EXIT_MSG_TYPE = 6
+
+
+    PROMT_LOG_MSG_TYPE = 10
+    PROMT_COLOR_MSG_TYPE = 11
+    PROMT_WAIT_MSG_TYPE = 12
+    PROMT_GO_MSG_TYPE = 13
+    PROMT_TIME_MSG_TYPE = 14
+    PROMT_EXIT_MSG_TYPE = 15
+
     MAX_MSG_LEN = 256
 
 
@@ -35,5 +44,8 @@ class ModuleMsg(object):
         if "" == line:
             self.msg_type = ModuleMsg.INVALID_MSG_TYPE
         else:
-            self.decode(line)
+            try:
+                self.decode(line)
+            except:
+                print "xxxxxxxxxxxxxxxxx[%s]xxxxxxxxxxxxxxxxxxxx" %(line)
         return self

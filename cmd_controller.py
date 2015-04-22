@@ -10,6 +10,7 @@ from const_str import ConstStr
 from human_role import HumanRole
 from robot_role import RobotRole
 from network_service import GobangServer, GobangClient
+from gobang import Gobang, Stone
 
 class CmdMsg(object):
     JOIN_MODE = "join_mode"
@@ -54,7 +55,7 @@ class CmdController(object):
         self.is_exit = False
 
         self.interface_in = None
-        self.work_thread = None
+        self.work = None
 
 
     def input_promt(self):
@@ -119,6 +120,7 @@ class CmdController(object):
         robot_role.start()
         human_role.start()
         self.roles = [human_role, robot_role]
+        self.work.start()
 
 
 
@@ -133,6 +135,8 @@ class CmdController(object):
         net_role.start()
         human_role.start()
         self.roles = [human_role, net_role]
+
+        self.work.start()
 
 
 
@@ -296,7 +300,6 @@ class CmdController(object):
                                        "exit        退出游戏\n",
                                        "help        帮助\n")
 
-
     def interact(self):
         while(True):
             line = self.input("")
@@ -310,24 +313,41 @@ class CmdController(object):
                 self.handles[cmd_msg.contents[0]](cmd_msg)
 
 
+    def recv_msg(self, msg, watch_file):
+        if msg.msg_type == ModuleMsg.PROMT_MSG_TYPE:
+            watch_file.write(msg.content[0])
+            watch_file.flush()
+        elif msg.msg_type == ModuleMsg.EXIT_MSG_TYPE:
+            self.is_exit = True
+
+
     def work_thread(self):
         inputs = [self.interface_in]
         outputs = []
         timeout = 1
-        is_exit = False
+        self.is_exit = False
+        watch_file = open("watch_%d_%s.log" %(self.work.ident, self.nickname), 'w')
         while False == self.is_exit:
             readable, writable, exceptional = select.select(inputs, outputs, inputs, timeout)
             if readable or writable or exceptional:
-                for rin in readable:
-                    line = rin.readline().strip('\n')
-                    msg = ModuleMsg().decode(line)
-                    self.output("\n%s\n%s>", msg.contents[0], self.input_promt())
+                for fd in readable:
+                    if fd is self.interface_in:
+                        msg = ModuleMsg().recv(fd)
+                        self.recv_msg(msg)
+
+        for role in self.roles:
+            role.work.join()
+
+        watch_file.close()
+        self.is_starting = False
+        self.roles = [None, None]
+
 
 
     def run(self):
         self.input_nickname()
-        self.work_thread = Thread(target = self.work_thread)
+        self.work = Thread(target = self.work_thread)
         self.interact()
         self.is_exit = False
-        self.work_thread.join()
+        self.work.join()
         self.is_exit = True
