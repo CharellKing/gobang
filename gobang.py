@@ -112,6 +112,21 @@ class Gobang(object):
     def get_last_stone():
         return self.stack[-1]
 
+    def get_chess(self):
+        chess = []
+        for i in xrange (0, Gobang.GRIDS):
+            chess.append(list('.' * Gobang.GRIDS))
+
+        for x_grid in xrange (0, Gobang.GRIDS):
+            for y_grid in xrange (0, Gobang.GRIDS):
+                if True == self.stones.has_key(x_grid << 8 | y_grid):
+                    stone = self.stones[x_grid << 8 | y_grid]
+                    if Stone.WHITE == stone.color:
+                        chess[y_grid][x_grid] = 'w'
+                    else:
+                        chess[y_grid][x_grid] = 'b'
+        return chess
+
     @staticmethod
     def random_order():
         if 0 == random.randint(0, 1):

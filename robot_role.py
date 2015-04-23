@@ -1,6 +1,9 @@
 #!/usr/bin/python
 #-*-coding:utf-8-*-
 
+import os
+import sys
+
 from threading import Thread
 import socket, select
 
@@ -15,7 +18,7 @@ class RobotRole(object):
         self.timeout = None
 
         self.work = None
-        self.is_exit = True
+        self.thread_is_exit = True
         self.color = None
         self.status = None
         self.time = None
@@ -56,19 +59,35 @@ class RobotRole(object):
             ret = Gobang.SUCCESS
 
         if Gobang.UNKNOWN != ret:
-            self.send_exit_msg(ret)
+            self.send_stop_msg(ret)
 
 
     def recv_time_msg(self, msg):
         time = msg.content[0]
         self.time = time
 
+    def recv_thread_exit_msg(self, msg):
+        self.thread_is_exit = True
+
+    def send_thread_exit_msg(self):
+        ModuleMsg(ModuleMsg.THREAD_EXIT_MSG_TYPE).send(self.out)
+        self.thread_is_exit = True
+
+
+    def recv_stop_msg(self, msg):
+        self.status = None
+
+    def send_stop_msg(self, ret):
+        ModuleMsg(ModuleMsg.STOP_MSG_TYPE, [ret]).send(self.out)
+        self.status = None
+
     def recv_exit_msg(self, msg):
-        self.is_exit = True
+        self.thread_is_exit = True
 
     def send_exit_msg(self):
         ModuleMsg(ModuleMsg.EXIT_MSG_TYPE).send(self.out)
-        self.is_exit = True
+        self.thread_is_exit = True
+
 
     def recv_msg(self, msg):
         if msg.msg_type == ModuleMsg.START_MSG_TYPE:
@@ -77,6 +96,8 @@ class RobotRole(object):
             self.recv_putdown_msg(msg)
         elif msg.msg_type == ModuleMsg.TIME_MSG_TYPE:
             self.recv_time_msg(msg)
+        elif msg.msg_type == ModuleMsg.THREAD_EXIT_MSG_TYPE:
+            self.recv_thread_exit_msg(msg)
         elif msg.msg_type == ModuleMsg.EXIT_MSG_TYPE:
             self.recv_exit_msg(msg)
 
@@ -96,15 +117,19 @@ class RobotRole(object):
         outputs = []
         timeout = 1
 
-        self.is_exit = False
-        while False == self.is_exit:
+        self.thread_is_exit = False
+        while False == self.thread_is_exit:
             readable, writable, exceptional = select.select(inputs, outputs, inputs, timeout)
             if readable or writable or exceptional:
                 for fd in readable:
                     if fd is self.fin:
-                        msg = ModuleMsg().recv(fd)
-                        self.recv_msg(msg)
-            elif "GO" == self.status and False == self.is_exit:
+                        msg_strs = os.read(fd, ModuleMsg.MAX_MSG_LEN).split('\n')
+                        for msg_str in msg_strs:
+                            if "" != msg_str:
+                                msg = ModuleMsg().decode(msg_str)
+                                self.recv_msg(msg)
+
+            elif "GO" == self.status and False == self.thread_is_exit:
                 self.send_time_out(msg)
 
 

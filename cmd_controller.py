@@ -5,11 +5,13 @@ import os
 import sys
 import re
 from threading import Thread
+import socket, select
 
 from const_str import ConstStr
 from human_role import HumanRole
 from robot_role import RobotRole
-from network_service import GobangServer, GobangClient
+from net_role import NetRole
+from module_msg import ModuleMsg
 from gobang import Gobang, Stone
 
 class CmdMsg(object):
@@ -25,7 +27,7 @@ class CmdMsg(object):
     HELP = "show_help"
 
     def __init__(self, cmd_msg):
-        self.contents = cmd_msg.split(" ")
+        self.content = cmd_msg.split(" ")
 
 
 class CmdController(object):
@@ -50,13 +52,21 @@ class CmdController(object):
                         CmdMsg.CHESS: self.show_chess,
                         CmdMsg.HELP: self.show_help}
 
-        self.is_network_running = False #是否网络运行正常
-        self.is_starting = False   #是否正在游戏
+        self.thread_is_exit = True
+
         self.is_exit = False
 
         self.interface_in = None
         self.work = None
 
+        self.thread_func = self.work_thread
+        self.watch_file = None
+
+    def is_starting(self):
+        return None != self.roles[0] and True == self.roles[0].is_starting()
+
+    def is_net_run(self):
+        return CmdController.NETPLAY_MODE == self.mode and None != self.roles[1] and True == self.roles[1].net_is_running()
 
     def input_promt(self):
         color_str = ""
@@ -84,26 +94,27 @@ class CmdController(object):
 
         self.output("欢迎进入五子棋的世界")
 
-
     def join_mode_with_promt(self, cmd_msg):
-        if len(cmd_msg.contents) <= 1 or \
-          (cmd_msg.contents[1] != CmdController.NETPLAY_MODE and \
-           cmd_msg.contents[1] != ConstStr.ROBOTPLAY_MODE):
+        if len(cmd_msg.content) <= 1 or \
+          (cmd_msg.content[1] != CmdController.NETPLAY_MODE and \
+           cmd_msg.content[1] != ConstStr.ROBOTPLAY_MODE):
             self.output("[join_mode] 后面应该紧跟正确的模式名称[%s|%s]" %(CmdController.NETPLAY_MODE, CmdController.ROBOTPLAY_MODE))
-        elif None != self.mode and cmd_msg.contents[1] != self.mode:
+        elif None != self.mode and cmd_msg.content[1] != self.mode:
             if ('y' == self.input("您正处于[%s]模式, 是否要离开(y-yes, n-no)" %(self.mode))):
                 self.join_mode_without_promt(cmd_msg)
         else:
             self.join_mode_without_promt(cmd_msg)
 
     def join_mode_without_promt(self, cmd_msg):
-        if cmd_msg.contents[1] != self.mode:
-            self.is_starting = False
+        if cmd_msg.content[1] != self.mode:
             if self.mode == CmdController.NETPLAY_MODE:
                 self.is_running = False
 
-            self.mode = cmd_msg.contents[1]
+            if False == self.thread_is_exit:
+                self.roles[0].send_thread_exit_msg()
+                self.work.join()
 
+            self.mode = cmd_msg.content[1]
             if CmdController.ROBOTPLAY_MODE == self.mode:
                 self.deal_robot_mode()
             else:
@@ -120,6 +131,8 @@ class CmdController(object):
         robot_role.start()
         human_role.start()
         self.roles = [human_role, robot_role]
+
+        self.work = Thread(target = self.thread_func)
         self.work.start()
 
 
@@ -131,11 +144,11 @@ class CmdController(object):
 
         net_role = NetRole(net_in, net_out)
         human_role = HumanRole(human_in, human_out, human_interface_out)
-
         net_role.start()
         human_role.start()
         self.roles = [human_role, net_role]
 
+        self.work = Thread(target = self.thread_func)
         self.work.start()
 
 
@@ -149,91 +162,97 @@ class CmdController(object):
 
 
     def exit_mode_without_promt(self, cmd_msg):
-        self.is_starting = False
         self.mode = None
 
+        if False == self.thread_is_exit:
+            self.roles[0].send_thread_exit_msg()
+            self.work.join()
+            self.thread_is_exit = True
+
     def hold_with_promt(self, cmd_msg):
-        if True == self.is_starting:
+        if True == self.is_starting():
             self.output("游戏正开始中")
         elif CmdController.ROBOTPLAY_MODE == self.mode:
             self.output("您正处于[%s]模式" %(self.mode))
         else:
             if False == self.hold_without_promt(cmd_msg):
-                self.output("主持网络对弈失败")
-            else:
-                self.output("主持网络对弈成功")
+                self.output("端口不正确")
+
 
 
     def hold_without_promt(self, cmd_msg):
+        if None == self.roles[0] or None == self.roles[1]:
+            self.deal_net_mode()
+
         self.mode = CmdController.NETPLAY_MODE
 
-        port = CmdController.NETWORK_PORT
-        if len(cmd_msg.contents) >= 2 and False == CmdController.is_int(cmd_msg.contents[1]):
-            return False
-        else:
-            port = int(cmd_msg.contents[1])
+        port = "%d" %(CmdController.NETWORK_PORT)
+        if len(cmd_msg.content) >= 2 and True == CmdController.is_int(cmd_msg.content[1]):
+            port = int(cmd_msg.content[1])
 
-        net_service = GobangServer()
-        if False == net_service.start():
-            return False
 
-        roles[2].set_service(net_service)
-        roles[2].start_service()
 
-        self.is_network_running = True
+        self.roles[0].send_listen_msg(ModuleMsg(ModuleMsg.LISTEN_MSG_TYPE, [port]))
+
+
         return True
 
     def attent_with_promt(self, cmd_msg):
-        if True == self.is_starting:
+        if True == self.is_starting():
             self.output("游戏正开始中")
         elif CmdController.ROBOTPLAY_MODE == self.mode:
             self.output("您正处于[%s]模式" %(self.mode))
         else:
             if False == self.attent_without_promt(cmd_msg):
                 self.output("加入网络对弈失败")
-            else:
-                self.output("加入网络对弈成功")
+
 
     def attent_without_promt(self, cmd_msg):
+        if None == self.roles[0] or None == self.roles[1]:
+            self.deal_net_mode()
+
         self.mode = CmdController.NETPLAY_MODE
 
-        if len(cmd_msg.contents) < 2 or \
-            False == CmdController.is_ip(cmd_msg.contents[1]) or \
-            (len(cmd_msg.contents) >= 3 and False == CmdController.is_int(cmd_msg.contents[2])):
+        if len(cmd_msg.content) < 2 or \
+            False == CmdController.is_ip(cmd_msg.content[1]) or \
+            (len(cmd_msg.content) >= 3 and False == CmdController.is_int(cmd_msg.content[2])):
             return False
 
 
-        host = cmd_msg.contents[1]
+        host = cmd_msg.content[1]
         port = CmdController.NETWORK_PORT
-        if len(cmd_msg.contents) >= 3:
-            port = int(cmd_msg.contents[2])
+        if len(cmd_msg.content) >= 3:
+            port = int(cmd_msg.content[2])
 
-        self.is_network_running = True
+        self.roles[0].send_conn_msg(ModuleMsg(ModuleMsg.CONNECT_MSG_TYPE, [host, port]))
         return True
 
 
     def start_game_with_promt(self, cmd_msg):
         if None == self.mode:
             self.output("您还没有进入任何模式")
-        elif CmdController.NETPLAY_MODE == self.mode and False == self.is_network_running:
+        elif CmdController.NETPLAY_MODE == self.mode and False == self.is_net_run():
             self.output("您处于%s模式, 还没有发起或者参与游戏" %(self.mode))
+        elif self.is_starting():
+            self.output("您已经在游戏中了")
         else:
             self.start_game_without_promt(cmd_msg)
 
     def start_game_without_promt(self, cmd_msg):
         self.roles[0].send_start_msg()
-        self.is_starting = True
-
 
 
     def stop_game_with_promt(self, cmd_msg):
-        if True == self.is_starting:
+        if True == self.is_starting():
             if "y" == self.input("是否停止游戏(y-是, n-否)"):
                 self.stop_game_without_promt(cmd_msg)
 
 
     def stop_game_without_promt(self, cmd_msg):
-        self.is_starting = False
+        if True == self.is_starting():
+            self.roles[0].send_stop_msg(Gobang.UNKNOWN)
+
+
 
     @staticmethod
     def is_int(str):
@@ -252,23 +271,30 @@ class CmdController(object):
             return True
 
     def put_down_with_promt(self, cmd_msg):
-        if False == self.is_starting:
+        if False == self.is_starting():
             self.output("游戏还没开始运行")
-        elif len(cmd_msg.contents) < 3 or \
-            False == CmdController.is_int(cmd_msg.contents[1]) or \
-            False == CmdController.is_int(cmd_msg.contents[2]):
+        elif len(cmd_msg.content) < 3 or \
+            False == CmdController.is_int(cmd_msg.content[1]) or \
+            False == CmdController.is_int(cmd_msg.content[2]):
             self.output("[put_down] 后面紧跟行号和列号")
         else:
             self.put_down_without_promt(cmd_msg)
 
 
     def put_down_without_promt(self, cmd_msg):
-        row = int(cmd_msg.contents[1])
-        col = int(cmd_msg.contents[2])
+        x_grid = int(cmd_msg.content[1])
+        y_grid = int(cmd_msg.content[2])
+
+        if x_grid >= 0 and x_grid < Gobang.GRIDS and \
+           y_grid >= 0 and y_grid < Gobang.GRIDS and \
+           self.is_starting() and False == self.roles[0].gobang.is_taken_up(x_grid, y_grid) and \
+           "GO" == self.roles[0].status:
+            self.roles[0].send_putdown_msg(x_grid, y_grid)
+
 
 
     def exit_with_promt(self, cmd_msg):
-        if True == self.is_starting and 'y' == self.input("您正处于运行状态,是否要离开?(y-是, n-否)"):
+        if True == self.is_starting() and 'y' == self.input("您正处于运行状态,是否要离开?(y-是, n-否)"):
             self.output("拜拜!")
             self.exit_without_promt(cmd_msg)
         else:
@@ -277,16 +303,18 @@ class CmdController(object):
 
 
     def exit_without_promt(self, cmd_msg):
-        self.is_starting = False
-        self.is_running = False
-
-        exit(0)
+        if False == self.thread_is_exit:
+            self.roles[0].send_thread_exit_msg()
+            self.thread_is_exit = True
+        self.is_exit = True
 
     def show_chess(self, cmd_msg):
-        if False == self.is_starting:
+        if False == self.is_starting():
             self.output("游戏还没开始")
         else:
-            print "xxxx"
+            chess = self.roles[0].gobang.get_chess()
+            for i in xrange (0, Gobang.GRIDS):
+                print "%s" %(''.join(chess[i]))
 
     def show_help(self, cmd_msg):
         print "%s%s%s%s%s%s%s%s%s%s" %("join_mode   进入模式(人机对弈|网络对弈)\n",
@@ -301,53 +329,79 @@ class CmdController(object):
                                        "help        帮助\n")
 
     def interact(self):
-        while(True):
+        while(False == self.is_exit):
             line = self.input("")
             if "" == line:
                 continue
 
             cmd_msg = CmdMsg(line)
-            if False == self.handles.has_key(cmd_msg.contents[0]):
+            if False == self.handles.has_key(cmd_msg.content[0]):
                 self.output("无效的命令")
             else:
-                self.handles[cmd_msg.contents[0]](cmd_msg)
+                self.handles[cmd_msg.content[0]](cmd_msg)
 
 
-    def recv_msg(self, msg, watch_file):
-        if msg.msg_type == ModuleMsg.PROMT_MSG_TYPE:
-            watch_file.write(msg.content[0])
-            watch_file.flush()
+    def recv_msg(self, msg):
+        if msg.msg_type == ModuleMsg.PROMT_LOG_MSG_TYPE:
+            self.watch_file.write(msg.content[0] + "\r\n")
+            self.watch_file.flush()
+        elif msg.msg_type == ModuleMsg.THREAD_EXIT_MSG_TYPE:
+            self.watch_file.write("cmd recv thread exit msg" + "\r\n")
+            self.watch_file.flush()
+            self.thread_is_exit = True
+        elif msg.LISTEN_SUCC_MSG_TYPE == msg.msg_type:
+            self.watch_file.write("cmd recv listen success" + "\r\n")
+            self.watch_file.flush()
+        elif msg.LISTEN_ERR_MSG_TYPE == msg.msg_type:
+            self.watch_file.write("cmd recv listen error:%s" %(msg.content[0].replace('huanhang', '\n')) + "\r\n")
+            self.watch_file.flush()
+        elif msg.CONNECT_SUCC_MSG_TYPE == msg.msg_type:
+            self.watch_file.write("cmd recv connect success" + "\r\n")
+            self.watch_file.flush()
+        elif msg.CONNECT_ERR_MSG_TYPE == msg.msg_type:
+            self.watch_file.write("cmd recv connect error:%s" %(msg.content[0].replace('huanhang', '\n')) + "\r\n")
+            self.watch_file.flush()
+        elif msg.SRV_RECV_CONN_MSG_TYPE == msg.msg_type:
+            self.watch_file.write("cmd recv %s connect me" %(msg.content[0]) + "\r\n")
+            self.watch_file.flush()
         elif msg.msg_type == ModuleMsg.EXIT_MSG_TYPE:
+            self.watch_file.write("cmd recv exit msg" + "\r\n")
+            self.watch_file.flush()
+            self.thread_is_exit = True
             self.is_exit = True
-
 
     def work_thread(self):
         inputs = [self.interface_in]
         outputs = []
         timeout = 1
-        self.is_exit = False
-        watch_file = open("watch_%d_%s.log" %(self.work.ident, self.nickname), 'w')
-        while False == self.is_exit:
+        self.thread_is_exit = False
+        self.watch_file.truncate()
+        self.watch_file.flush()
+        while False == self.thread_is_exit:
             readable, writable, exceptional = select.select(inputs, outputs, inputs, timeout)
             if readable or writable or exceptional:
                 for fd in readable:
                     if fd is self.interface_in:
-                        msg = ModuleMsg().recv(fd)
-                        self.recv_msg(msg)
+                        msg_strs = os.read(fd, ModuleMsg.MAX_MSG_LEN).split('\n')
+                        for msg_str in msg_strs:
+                            if "" != msg_str:
+                                msg = ModuleMsg().decode(msg_str)
+                                self.recv_msg(msg)
+
 
         for role in self.roles:
             role.work.join()
 
-        watch_file.close()
-        self.is_starting = False
         self.roles = [None, None]
 
 
 
     def run(self):
         self.input_nickname()
-        self.work = Thread(target = self.work_thread)
-        self.interact()
+        self.watch_file = open("watch_%d_%s.log" %(os.getpid(), self.nickname), 'w')
         self.is_exit = False
-        self.work.join()
-        self.is_exit = True
+        self.interact()
+        self.thread_is_exit = True
+        if self.work:
+            self.work.join()
+        self.watch_file.close()
