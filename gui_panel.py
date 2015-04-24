@@ -216,8 +216,8 @@ class GuiPanel(wx.Panel):
 
 
     def OnRobotRadio(self, evt):
-        if None != self.cmd_controller.mode and "人机对弈" != self.cmd_controller.mode:
-            dlg = wx.MessageDialog(None, "您正处于[%s]模式, 是否要离开" %(self.cmd_controller.mode), '提示', wx.YES_NO | wx.ICON_INFORMATION)
+        if True == self.cmd_controller.is_starting():
+            dlg = wx.MessageDialog(None, "您正在游戏中,是否离开?", '提示', wx.YES_NO | wx.ICON_INFORMATION)
             if dlg.ShowModal() == wx.ID_YES:
                 self.InitSelectRobot()
                 self.cmd_controller.join_mode_without_promt(CmdMsg("join_mode 人机对弈"))
@@ -229,8 +229,8 @@ class GuiPanel(wx.Panel):
 
 
     def OnNetworkRadio(self, evt):
-        if None != self.cmd_controller.mode and "网络对弈" != self.cmd_controller.mode:
-            dlg = wx.MessageDialog(None, "您正处于[%s]模式, 是否要离开(y-yes, n-no)" %(self.cmd_controller.mode), '提示', wx.YES_NO | wx.ICON_INFORMATION)
+        if True == self.cmd_controller.is_starting():
+            dlg = wx.MessageDialog(None, "您正在游戏中,是否离开?", '提示', wx.YES_NO | wx.ICON_INFORMATION)
             if dlg.ShowModal() == wx.ID_YES:
                 self.InitSelectNetwork()
                 self.cmd_controller.join_mode_without_promt(CmdMsg("join_mode 网络对弈"))
@@ -243,10 +243,10 @@ class GuiPanel(wx.Panel):
 
 
     def OnEraseBackground(self, evt):
-
         dc = wx.ClientDC(self)
         rect = self.GetUpdateRegion().GetBox()
         dc.SetClippingRect(rect)
+
 
         if False == self.cmd_controller.is_starting():
             rect = wx.Rect(0, 0, GuiPanel.FACTOR * Gobang.GRIDS, GuiPanel.FACTOR * Gobang.GRIDS)
