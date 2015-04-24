@@ -65,7 +65,7 @@ class CmdController(object):
     def is_starting(self):
         return None != self.roles[0] and True == self.roles[0].is_starting()
 
-    def is_net_run(self):
+    def is_net_running(self):
         return CmdController.NETPLAY_MODE == self.mode and None != self.roles[1] and True == self.roles[1].net_is_running()
 
     def input_promt(self):
@@ -231,8 +231,8 @@ class CmdController(object):
     def start_game_with_promt(self, cmd_msg):
         if None == self.mode:
             self.output("您还没有进入任何模式")
-        elif CmdController.NETPLAY_MODE == self.mode and False == self.is_net_run():
-            self.output("您处于%s模式, 还没有发起或者参与游戏" %(self.mode))
+        elif CmdController.NETPLAY_MODE == self.mode and False == self.is_net_running():
+            self.output("您处于%s模式, 对弈双方网络连接还没有连接起来" %(self.mode))
         elif self.is_starting():
             self.output("您已经在游戏中了")
         else:
@@ -251,7 +251,6 @@ class CmdController(object):
     def stop_game_without_promt(self, cmd_msg):
         if True == self.is_starting():
             self.roles[0].send_stop_msg(Gobang.UNKNOWN)
-
 
 
     @staticmethod

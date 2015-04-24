@@ -65,8 +65,7 @@ class HumanRole(object):
 
         if True == self.is_start:
             self.send_color_msg()
-        else:
-            ModuleMsg(ModuleMsg.PROMT_LOG_MSG_TYPE, ["human: wait other's start"]).send(self.interface_out)
+
 
 
     def send_stop_msg(self, ret):
@@ -77,7 +76,6 @@ class HumanRole(object):
 
     def recv_stop_msg(self, msg):
         ModuleMsg(ModuleMsg.PROMT_LOG_MSG_TYPE, ["human recv stop_msg"]).send(self.interface_out)
-        ModuleMsg(ModuleMsg.STOP_MSG_TYPE).send(self.out)
         self.is_start = False
         self.status = None
 
@@ -141,8 +139,7 @@ class HumanRole(object):
 
     def recv_thread_exit_msg(self, msg):
         self.thread_is_exit = True
-        ModuleMsg(ModuleMsg.THREAD_EXIT_MSG_TYPE, [msg.content[0]]).send(self.interface_out)
-        self.work_thread.join()
+        msg.send(self.interface_out)
 
     def send_exit_msg(self):
         self.thread_is_exit = True
@@ -153,7 +150,7 @@ class HumanRole(object):
     def recv_exit_msg(self, msg):
         self.thread_is_exit = True
         ModuleMsg(ModuleMsg.EXIT_MSG_TYPE, [msg.content[0]]).send(self.interface_out)
-        self.work_thread.join()
+        self.work.join()
 
     def send_listen_msg(self, msg):
         msg.send(self.out)
@@ -171,7 +168,7 @@ class HumanRole(object):
         elif msg.msg_type == ModuleMsg.TIME_MSG_TYPE:
             self.recv_time_msg(msg)
         elif msg.msg_type == ModuleMsg.THREAD_EXIT_MSG_TYPE:
-            self.recv_threadexit_msg()
+            self.recv_thread_exit_msg(msg)
         elif msg.msg_type == ModuleMsg.STOP_MSG_TYPE:
             self.recv_stop_msg(msg)
         elif msg.msg_type == ModuleMsg.EXIT_MSG_TYPE:
@@ -179,6 +176,7 @@ class HumanRole(object):
         elif msg.msg_type == ModuleMsg.LISTEN_ERR_MSG_TYPE or  \
           msg.msg_type == ModuleMsg.LISTEN_SUCC_MSG_TYPE or \
           msg.msg_type == ModuleMsg.CONNECT_SUCC_MSG_TYPE or \
+          msg.msg_type == ModuleMsg.SRV_RECV_CONN_MSG_TYPE or \
           msg.msg_type == ModuleMsg.CONNECT_ERR_MSG_TYPE:
             msg.send(self.interface_out)
         else:

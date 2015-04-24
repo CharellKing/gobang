@@ -27,10 +27,9 @@ class NetRole(object):
         self.work = None
 
     def net_is_running(self):
-        return None != self.svr_sock or None != self.cli_conn
+        return (None == self.svr_sock and None != self.cli_conn) or \
+          (None != self.svr_sock and None != self.cli_conn)
 
-    def is_starting(self):
-        return None != self.cli_conn
 
     def recv_listen_from_human(self, msg):
         try:
@@ -88,14 +87,14 @@ class NetRole(object):
 
     def recv_msg_from_sock(self, msg):
         if msg.msg_type != ModuleMsg.INVALID_MSG_TYPE:
-            ModuleMsg(msg).send(self.out)
+            msg.send(self.out)
 
         if msg.msg_type == ModuleMsg.THREAD_EXIT_MSG_TYPE or msg.msg_type == ModuleMsg.EXIT_MSG_TYPE:
             self.thread_is_exit = True
 
 
     def work_thread(self):
-        inputs = [self.fin]
+        self.inputs = [self.fin]
         outputs = []
         timeout = 1
 
@@ -103,7 +102,7 @@ class NetRole(object):
 
         print "net role start"
         while False == self.thread_is_exit:
-            readable, writable, exceptional = select.select(inputs, outputs, inputs, timeout)
+            readable, writable, exceptional = select.select(self.inputs, outputs, self.inputs, timeout)
             if readable or writable or exceptional:
                 for fd in readable:
                     if fd is self.fin:
@@ -113,11 +112,11 @@ class NetRole(object):
                                 msg = ModuleMsg().decode(msg_str)
                                 self.recv_msg_from_human(msg)
                     elif fd is self.svr_sock:
-                        print "receive accept"
                         (self.cli_conn, addr) = self.svr_sock.accept()
+                        self.inputs.append(self.cli_conn)
                         ModuleMsg(ModuleMsg.SRV_RECV_CONN_MSG_TYPE, [addr]).send(self.out)
-                    elif fd is self.cli_sock:
-                        msg_strs = os.read(fd, ModuleMsg.MAX_MSG_LEN).split('\n')
+                    elif fd is self.cli_conn:
+                        msg_strs = fd.recv(ModuleMsg.MAX_MSG_LEN).split('\n')
                         for msg_str in msg_strs:
                             if "" != msg_str:
                                 msg = ModuleMsg().decode(msg_str)

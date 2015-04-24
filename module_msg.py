@@ -49,7 +49,7 @@ class ModuleMsg(object):
         os.write(out, self.encode() + "\n")
 
     def net_send(self, out):
-        out.send(self.encode + "\n")
+        out.send(self.encode() + "\n")
 
     def recv(self, fin):
         line = os.read(fin, ModuleMsg.MAX_MSG_LEN).strip('\n')
