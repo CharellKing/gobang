@@ -6,6 +6,7 @@ import sys
 
 from get_opt import GetOpt
 from cmd_controller import CmdController
+from gui_controller import GuiController
 
 def usage():
     return "usage:%s%s%s%s" %("[--cmd] 命令行模式\n",
@@ -16,16 +17,16 @@ def usage():
 def main(script, *args):
     opt_args = GetOpt.get_opt(usage())
 
-    mode = "cmd"
-    if opt_args.has_key("--gui"):
-        mode = "gui"
+    mode = "gui"
+    if opt_args.has_key("--cmd"):
+        mode = "cmd"
 
     controller = None
     if "gui" == mode:
-        print "xxxxx"
+        controller = GuiController()
     else:
         controller = CmdController()
-        controller.run()
+    controller.run()
 
 if __name__ == "__main__":
     import sys

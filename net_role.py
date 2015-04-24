@@ -73,6 +73,21 @@ class NetRole(object):
             msg.net_send(self.cli_conn)
         self.thread_is_exit = True
 
+    def recv_stop_conn_from_human(self, msg):
+        if None != self.cli_conn:
+            print "destory cli_conn"
+            msg.net_send(self.cli_conn)
+            self.inputs.remove(self.cli_conn)
+            self.cli_conn.close()
+            self.cli_conn = None
+
+        if None != self.svr_sock:
+            print "destory svr_sock"
+            self.inputs.remove(self.svr_sock)
+            self.svr_sock.close()
+            self.svr_sock = None
+
+
     def recv_msg_from_human(self, msg):
         if msg.msg_type == ModuleMsg.LISTEN_MSG_TYPE:
             self.recv_listen_from_human(msg)
@@ -82,6 +97,8 @@ class NetRole(object):
             self.recv_exit_from_human(msg)
         elif msg.msg_type == ModuleMsg.INVALID_MSG_TYPE:
             return
+        elif msg.msg_type == ModuleMsg.STOP_CONN_MSG_TYPE:
+            self.recv_stop_conn_from_human(msg)
         else:
             msg.net_send(self.cli_conn)
 
@@ -91,6 +108,19 @@ class NetRole(object):
 
         if msg.msg_type == ModuleMsg.THREAD_EXIT_MSG_TYPE or msg.msg_type == ModuleMsg.EXIT_MSG_TYPE:
             self.thread_is_exit = True
+
+        if msg.msg_type == ModuleMsg.STOP_CONN_MSG_TYPE:
+            if None != self.cli_conn:
+                print "recv sock destory cli_conn"
+                self.inputs.remove(self.cli_conn)
+                self.cli_conn.close()
+                self.cli_conn = None
+
+            if None != self.svr_sock:
+                print "recv sock destory svr_conn"
+                self.inputs.remove(self.svr_sock)
+                self.svr_sock.close()
+                self.svr_sock = None
 
 
     def work_thread(self):

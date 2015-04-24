@@ -62,6 +62,12 @@ class CmdController(object):
         self.thread_func = self.work_thread
         self.watch_file = None
 
+    def set_nickname(self, nickname):
+        self.nickname = nickname
+
+    def set_thread_func(self, thread_func):
+        self.thread_func = thread_func
+
     def is_starting(self):
         return None != self.roles[0] and True == self.roles[0].is_starting()
 
@@ -107,19 +113,19 @@ class CmdController(object):
 
     def join_mode_without_promt(self, cmd_msg):
         if cmd_msg.content[1] != self.mode:
-            if self.mode == CmdController.NETPLAY_MODE:
-                self.is_running = False
-
+            self.mode = cmd_msg.content[1]
             if False == self.thread_is_exit:
                 self.roles[0].send_thread_exit_msg()
                 self.work.join()
 
-            self.mode = cmd_msg.content[1]
             if CmdController.ROBOTPLAY_MODE == self.mode:
                 self.deal_robot_mode()
             else:
                 self.deal_net_mode()
 
+    def stop_conn_without_promt(self):
+        if CmdController.NETPLAY_MODE == self.mode:
+            self.roles[0].send_stop_conn_msg(ModuleMsg(ModuleMsg.STOP_CONN_MSG_TYPE))
 
     def deal_robot_mode(self):
         robot_in, human_out = os.pipe()
@@ -250,7 +256,7 @@ class CmdController(object):
 
     def stop_game_without_promt(self, cmd_msg):
         if True == self.is_starting():
-            self.roles[0].send_stop_msg(Gobang.UNKNOWN)
+            self.roles[0].send_stop_msg(Gobang.UNKNOWN, Gobang.UNKNOWN)
 
 
     @staticmethod
@@ -306,6 +312,13 @@ class CmdController(object):
             self.roles[0].send_thread_exit_msg()
             self.thread_is_exit = True
         self.is_exit = True
+
+        if None != self.roles[0] and None != self.roles[0].work:
+            self.roles[0].work.join()
+        if None != self.roles[1] and None != self.roles[1].work:
+            self.roles[1].work.join()
+        if None != self.work:
+            self.work.join()
 
     def show_chess(self, cmd_msg):
         if False == self.is_starting():

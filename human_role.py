@@ -21,7 +21,7 @@ class HumanRole(object):
         self.thread_is_exit = True
         self.color = None
         self.status = None
-        self.time = None
+        self.time = Gobang.RELAY_TIME
         self.gobang = None
 
         self.is_start = False
@@ -32,6 +32,7 @@ class HumanRole(object):
     def send_color_msg(self):
         ModuleMsg(ModuleMsg.PROMT_LOG_MSG_TYPE, ["human send color msg"]).send(self.interface_out)
 
+        self.time = Gobang.RELAY_TIME
         self.color = Gobang.random_order()
         self.gobang = Gobang()
         ModuleMsg(ModuleMsg.COLOR_MSG_TYPE, [not self.color]).send(self.out)
@@ -39,7 +40,7 @@ class HumanRole(object):
             self.status = "GO"
         else:
             self.status = "WAIT"
-        self.time = Gobang.RELAY_TIME
+
 
 
     def recv_color_msg(self, msg):
@@ -67,43 +68,56 @@ class HumanRole(object):
             self.send_color_msg()
 
 
-
-    def send_stop_msg(self, ret):
-        ModuleMsg(ModuleMsg.PROMT_LOG_MSG_TYPE, ["human send stop_msg"]).send(self.interface_out)
-        ModuleMsg(ModuleMsg.STOP_MSG_TYPE, [ret]).send(self.out)
+    def send_stop_msg(self, self_ret, competitor_ret, x_grid = None, y_grid = None):
         self.is_start = False
         self.status = None
 
+        msg = ModuleMsg(ModuleMsg.STOP_MSG_TYPE, [competitor_ret, x_grid, y_grid, self.color])
+        msg.send(self.out)
+
+        msg = ModuleMsg(ModuleMsg.STOP_MSG_TYPE, [self_ret, x_grid, y_grid, self.color])
+        msg.send(self.interface_out)
+
+        # msg.send(self.interface_out)
+
+
     def recv_stop_msg(self, msg):
-        ModuleMsg(ModuleMsg.PROMT_LOG_MSG_TYPE, ["human recv stop_msg"]).send(self.interface_out)
+        (ret, x_grid, y_grid, color) = msg.content
+        if None != x_grid and None != y_grid:
+            self.gobang.put_stone(x_grid, y_grid, color)
+        msg.send(self.interface_out)
         self.is_start = False
         self.status = None
 
 
     def send_putdown_msg(self, x_grid, y_grid):
-        ModuleMsg(ModuleMsg.PROMT_LOG_MSG_TYPE, ["human send putdown (%d %d) msg" %(x_grid, y_grid)]).send(self.interface_out)
-
-        self.gobang.put_stone(x_grid, y_grid, self.color)
-        ModuleMsg(ModuleMsg.PUT_MSG_TYPE, [self.color, x_grid, y_grid]).send(self.out)
-        self.status = "WAIT"
         self.time = Gobang.RELAY_TIME
+        self.status = "WAIT"
+        self.gobang.put_stone(x_grid, y_grid, self.color)
 
-        self.justy_result(x_grid, y_grid)
+        if Gobang.UNKNOWN == self.justy_result(x_grid, y_grid):
+            msg = ModuleMsg(ModuleMsg.PUT_MSG_TYPE, [self.color, x_grid, y_grid])
+            msg.send(self.out)
+            msg.send(self.interface_out)
+
 
     def justy_result(self, x_grid, y_grid):
-        ret = Gobang.UNKNOWN
+        self_ret = Gobang.UNKNOWN
+        competitor_ret = Gobang.UNKNOWN
         if True == self.gobang.is_tie(x_grid, y_grid):
-            ret = Gobang.TIED
+            self_ret = Gobang.TIED
+            competitor_ret = Gobang.TIED
         if True == self.gobang.is_five(x_grid, y_grid):
-            ret = Gobang.SUCCESS
+            competitor_ret = Gobang.FAILED     #发送给对方，对方失败了
+            self_ret = Gobang.SUCCESS
 
-        if Gobang.UNKNOWN != ret:
-            self.send_stop_msg(ret)
-
+        if Gobang.UNKNOWN != self_ret:
+            self.send_stop_msg(self_ret, competitor_ret, x_grid, y_grid)
+        return self_ret
 
     def recv_putdown_msg(self, msg):
         (color, x_grid, y_grid) = msg.content
-        ModuleMsg(ModuleMsg.PROMT_LOG_MSG_TYPE, ["human recv put down (%d %d) msg" %(x_grid, y_grid)]).send(self.interface_out)
+        msg.send(self.interface_out)
 
         self.gobang.put_stone(x_grid, y_grid, color)
         self.status = "GO"
@@ -114,20 +128,39 @@ class HumanRole(object):
             ModuleMsg(ModuleMsg.PROMT_LOG_MSG_TYPE, ["human: send time msg"]).send(self.interface_out)
             self.time -= 1
             msg = ModuleMsg(ModuleMsg.TIME_MSG_TYPE, [self.time])
+            msg.send(self.interface_out)
+            msg.send(self.out)
         else:
-            (x_grid, y_grid) = self.gobang.random_stone(self.color)
-            ModuleMsg(ModuleMsg.PROMT_LOG_MSG_TYPE, ["human: send timeout (%d %d) msg" %(x_grid, y_grid)]).send(self.interface_out)
-
-            ModuleMsg(ModuleMsg.PUT_MSG_TYPE, [self.color, x_grid, y_grid]).send(self.out)
-
             self.status = "WAIT"
             self.time = Gobang.RELAY_TIME
 
-            self.justy_result(x_grid, y_grid)
+            (x_grid, y_grid) = self.gobang.random_stone(self.color)
+
+            if Gobang.UNKNOWN == self.justy_result(x_grid, y_grid):
+                msg = ModuleMsg(ModuleMsg.PUT_MSG_TYPE, [self.color, x_grid, y_grid])
+                msg.send(self.interface_out)
+                msg.send(self.out)
+
+
+    def send_stop_conn_msg(self, msg):
+        msg.send(self.out)
+
+        self.color = None
+        self.status = None
+        self.gobang = None
+
+
+    def recv_stop_conn_msg(self, msg):
+        msg.send(self.interface_out)
+
+        self.color = None
+        self.status = None
+        self.gobang = None
+
 
     def recv_time_msg(self, msg):
         time = msg.content[0]
-        ModuleMsg(ModuleMsg.PROMT_LOG_MSG_TYPE, ["human: recv time (%d) msg" %(time)]).send(self.interface_out)
+        msg.send(self.interface_out)
         self.time = time
 
 
@@ -135,11 +168,13 @@ class HumanRole(object):
         self.thread_is_exit = True
         ModuleMsg(ModuleMsg.THREAD_EXIT_MSG_TYPE).send(self.out)
         ModuleMsg(ModuleMsg.THREAD_EXIT_MSG_TYPE).send(self.interface_out)
+        self.time = Gobang.RELAY_TIME
 
 
     def recv_thread_exit_msg(self, msg):
         self.thread_is_exit = True
         msg.send(self.interface_out)
+        self.time = Gobang.RELAY_TIME
 
     def send_exit_msg(self):
         self.thread_is_exit = True
@@ -173,6 +208,9 @@ class HumanRole(object):
             self.recv_stop_msg(msg)
         elif msg.msg_type == ModuleMsg.EXIT_MSG_TYPE:
             self.recv_exit_msg()
+        elif msg.msg_type == ModuleMsg.STOP_CONN_MSG_TYPE:
+            self.recv_stop_conn_msg(msg)
+
         elif msg.msg_type == ModuleMsg.LISTEN_ERR_MSG_TYPE or  \
           msg.msg_type == ModuleMsg.LISTEN_SUCC_MSG_TYPE or \
           msg.msg_type == ModuleMsg.CONNECT_SUCC_MSG_TYPE or \

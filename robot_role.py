@@ -56,10 +56,11 @@ class RobotRole(object):
         if True == self.gobang.is_tie(x_grid, y_grid):
             ret = Gobang.TIED
         if True == self.gobang.is_five(x_grid, y_grid):
-            ret = Gobang.SUCCESS
+            ret = Gobang.FAILED    #发送给对方，对方失败了
 
         if Gobang.UNKNOWN != ret:
-            self.send_stop_msg(ret)
+            self.send_stop_msg(ret, x_grid, y_grid)
+        return ret
 
 
     def recv_time_msg(self, msg):
@@ -75,10 +76,13 @@ class RobotRole(object):
 
 
     def recv_stop_msg(self, msg):
+        (ret, x_grid, y_grid, color) = msg.content
+        if None != x_grid and None != y_grid:
+            self.gobang.put_stone(x_grid, y_grid, color)
         self.status = None
 
-    def send_stop_msg(self, ret):
-        ModuleMsg(ModuleMsg.STOP_MSG_TYPE, [ret]).send(self.out)
+    def send_stop_msg(self, ret, x_grid = None, y_grid = None):
+        ModuleMsg(ModuleMsg.STOP_MSG_TYPE, [ret, x_grid, y_grid, self.color]).send(self.out)
         self.status = None
 
     def recv_exit_msg(self, msg):
@@ -87,6 +91,7 @@ class RobotRole(object):
     def send_exit_msg(self):
         ModuleMsg(ModuleMsg.EXIT_MSG_TYPE).send(self.out)
         self.thread_is_exit = True
+        self.status = None
 
 
     def recv_msg(self, msg):
@@ -107,10 +112,13 @@ class RobotRole(object):
             msg = ModuleMsg(ModuleMsg.TIME_MSG_TYPE, [self.time])
         else:
             self.time = Gobang.RELAY_TIME
-            (x_grid, y_grid) = self.gobang.random_stone(self.color)
-            ModuleMsg(ModuleMsg.PUT_MSG_TYPE, [self.color, x_grid, y_grid]).send(out)
             self.status = "WAIT"
-            self.justy_result(x_grid, y_grid)
+            (x_grid, y_grid) = self.gobang.random_stone(self.color)
+
+            if Gobang.UNKNOWN == self.justy_result(x_grid, y_grid):
+
+                ModuleMsg(ModuleMsg.PUT_MSG_TYPE, [self.color, x_grid, y_grid]).send(out)
+
 
     def work_thread(self):
         inputs = [self.fin]
