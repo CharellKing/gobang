@@ -35,6 +35,7 @@ class HumanRole(object):
         self.time = Gobang.RELAY_TIME
         self.color = Gobang.random_order()
         self.gobang = Gobang()
+        print "send %d" %(self.color)
         ModuleMsg(ModuleMsg.COLOR_MSG_TYPE, [not self.color]).send(self.out)
         if self.color == Stone.WHITE:
             self.status = "GO"
@@ -45,14 +46,16 @@ class HumanRole(object):
 
     def recv_color_msg(self, msg):
         ModuleMsg(ModuleMsg.PROMT_LOG_MSG_TYPE, ["human recv color msg"]).send(self.interface_out)
-
         color = msg.content[0]
         self.is_start = True
         self.color = color
+        print "recv %d" %(self.color)
         if Stone.WHITE == color:
             self.status = "GO"
+            print "human go"
         else:
             self.status = "WAIT"
+            print "human wait"
 
     def send_start_msg(self):
         ModuleMsg(ModuleMsg.PROMT_LOG_MSG_TYPE, ["human send start msg"]).send(self.interface_out)

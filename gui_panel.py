@@ -276,7 +276,7 @@ class GuiPanel(wx.Panel):
         dc.SetClippingRect(rect)
 
         (color, x_grid, y_grid) = evt.msg.content
-        bmp = wx.Bitmap("res/blackstone.bmp" if Stone.WHITE == color else "res/whitestone.bmp")
+        bmp = wx.Bitmap("res/blackstone.bmp" if Stone.BLACK == color else "res/whitestone.bmp")
         dc.DrawBitmap(bmp, (x_grid) * GuiPanel.FACTOR + GuiPanel.FACTOR / 2, (y_grid) * GuiPanel.FACTOR + GuiPanel.FACTOR / 2)
 
         # if self.cmd_controller.is_starting():

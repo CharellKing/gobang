@@ -31,9 +31,11 @@ class RobotRole(object):
         msg = ModuleMsg(ModuleMsg.COLOR_MSG_TYPE, [not self.color]).send(self.out)
 
         if self.color == Stone.WHITE:
+            print "robot_go"
             self.status = "GO"
             self.recv_putdown_msg(ModuleMsg(ModuleMsg.PUT_MSG_TYPE, [None, None, None]))
         else:
+            print "robot_wait"
             self.status = "WAIT"
         self.time = Gobang.RELAY_TIME
 
