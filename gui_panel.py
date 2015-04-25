@@ -255,41 +255,59 @@ class GuiPanel(wx.Panel):
 
 
     def OnEraseBackground(self, evt):
-        dc = wx.ClientDC(self)
-        rect = self.GetUpdateRegion().GetBox()
-        dc.SetClippingRect(rect)
-
-
-        if False == self.cmd_controller.is_starting():
-            rect = wx.Rect(0, 0, GuiPanel.FACTOR * Gobang.GRIDS, GuiPanel.FACTOR * Gobang.GRIDS)
-            dc.SetClippingRect(rect)
-
-            dc.Clear()
-
-
+        # dc = wx.ClientDC(self)
         # rect = self.GetUpdateRegion().GetBox()
         # dc.SetClippingRect(rect)
 
+        dc = wx.ClientDC(self)
+        rect = wx.Rect(0, 0, GuiPanel.FACTOR * Gobang.GRIDS, GuiPanel.FACTOR * Gobang.GRIDS)
+        dc.SetClippingRect(rect)
+
+
+        dc.Clear()
         bmp = wx.Bitmap("res/bg.bmp")
         dc.DrawBitmap(bmp, 0, 0)
 
-        if True == self.cmd_controller.is_starting():
-            count = self.cmd_controller.roles[0].time
-            for (key, stone) in self.cmd_controller.roles[0].gobang.stones.items():
-                bmp = wx.Bitmap("res/blackstone.bmp" if Stone.BLACK == stone.color else "res/whitestone.bmp")
-                dc.DrawBitmap(bmp, (stone.x_grid + 1) * GuiPanel.FACTOR, (stone.y_grid + 1) * GuiPanel.FACTOR)
+        wx.PostEvent(self.GetEventHandler(), CountTimeEvent())
+        wx.PostEvent(self.GetEventHandler(), PutStoneEvent())
 
-            dc.DrawBitmap(self.digit_bmps[0 if count < 10 else count / 10], 400, 0)
-            dc.DrawBitmap(self.digit_bmps[count % 10], 400 + self.digit_bmps[0].Width, 0)
+        # if False == self.cmd_controller.is_starting():
+        #     rect = wx.Rect(0, 0, GuiPanel.FACTOR * Gobang.GRIDS, GuiPanel.FACTOR * Gobang.GRIDS)
+        #     dc.SetClippingRect(rect)
+
+        #     dc.Clear()
+
+        #     bmp = wx.Bitmap("res/bg.bmp")
+        #     dc.DrawBitmap(bmp, 0, 0)
+
+        #     if None != self.cmd_controller.roles[0] and None != self.cmd_controller.roles[0].time:
+        #         count = self.cmd_controller.roles[0].time
+        #         print "xxxxxxxxxxxxxxxxxcount = ", count
+        #         dc.DrawBitmap(self.digit_bmps[0 if count < 10 else count / 10], 400, 0)
+        #         dc.DrawBitmap(self.digit_bmps[count % 10], 400 + self.digit_bmps[0].Width, 0)
+
+
+
+
+
+
+
 
     def OnPaintStone(self, evt):
         dc = wx.ClientDC(self)
-        rect = self.GetUpdateRegion().GetBox()
+        rect = wx.Rect(0, 0, GuiPanel.FACTOR * Gobang.GRIDS, GuiPanel.FACTOR * Gobang.GRIDS)
         dc.SetClippingRect(rect)
 
-        (color, x_grid, y_grid) = evt.msg.content
-        bmp = wx.Bitmap("res/blackstone.bmp" if Stone.BLACK == color else "res/whitestone.bmp")
-        dc.DrawBitmap(bmp, (x_grid) * GuiPanel.FACTOR + GuiPanel.FACTOR / 2, (y_grid) * GuiPanel.FACTOR + GuiPanel.FACTOR / 2)
+
+        if self.cmd_controller.is_starting():
+            dc.Clear()
+            bmp = wx.Bitmap("res/bg.bmp")
+            dc.DrawBitmap(bmp, 0, 0)
+
+            human_role = self.cmd_controller.roles[0]
+            for stone in human_role.gobang.stones.values():
+                bmp = wx.Bitmap("res/blackstone.bmp" if Stone.BLACK == stone.color else "res/whitestone.bmp")
+                dc.DrawBitmap(bmp, (stone.x_grid) * GuiPanel.FACTOR + GuiPanel.FACTOR / 2, (stone.y_grid) * GuiPanel.FACTOR + GuiPanel.FACTOR / 2)
 
         # if self.cmd_controller.is_starting():
         #     human_role = self.cmd_controller.roles[0]
@@ -434,11 +452,11 @@ class GuiPanel(wx.Panel):
         elif ModuleMsg.TIME_MSG_TYPE == msg.msg_type:
             wx.PostEvent(self.GetEventHandler(), CountTimeEvent())
         elif ModuleMsg.STOP_MSG_TYPE == msg.msg_type:
+            self.InitStopCtrl()
             (ret, x_grid, y_grid, color) = msg.content
             if None != x_grid and None != y_grid:
                 wx.PostEvent(self.GetEventHandler(), PutStoneEvent(msg = ModuleMsg(ModuleMsg.PUT_MSG_TYPE, [color, x_grid, y_grid])))
             # self.InitListenOrConnectCtrl()
-            self.InitStopCtrl()
 
             msg_text = {Gobang.TIED: "游戏平局", Gobang.SUCCESS: "游戏成功", Gobang.FAILED: "游戏失败", Gobang.UNKNOWN: "游戏终止"}
             wx.CallAfter(self.status_static.SetLabel, msg_text[ret])
@@ -453,8 +471,8 @@ class GuiPanel(wx.Panel):
             self.cmd_controller.thread_is_exit = True
             wx.PostEvent(self, wx.PyCommandEvent(wx.wxEVT_ERASE_BACKGROUND))
         elif ModuleMsg.STOP_CONN_MSG_TYPE == msg.msg_type:
-            wx.CallAfter(self.status_static.SetLabel, "停止游戏")
             self.InitStopCtrl()
+            wx.CallAfter(self.status_static.SetLabel, "停止游戏")
             wx.PostEvent(self, wx.PyCommandEvent(wx.wxEVT_ERASE_BACKGROUND))
 
 

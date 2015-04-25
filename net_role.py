@@ -123,32 +123,60 @@ class NetRole(object):
             if None != self.cli_conn:
                 msg.net_send(self.cli_conn)
 
+    def stop_sock(self):
+        if None != self.cli_conn:
+            self.inputs.remove(self.cli_conn)
+            self.cli_conn.shutdown(socket.SHUT_RDWR)
+            self.cli_conn.close()
+            self.cli_conn = None
+
+        if None != self.svr_sock:
+            print "recv sock destory svr_conn"
+            self.inputs.remove(self.svr_sock)
+            print "svr_sock hello1"
+            self.svr_sock.shutdown(socket.SHUT_RDWR)
+            print "svr_sock hello2"
+            self.svr_sock.close()
+            print "svr_sock hello3"
+            self.svr_sock = None
+
+    def recv_exit_from_sock(self, msg):
+        ModuleMsg(ModuleMsg.STOP_CONN_MSG_TYPE).send(self.out)
+        self.stop_sock()
+
+    def recv_thread_exit_from_sock(self, msg):
+        msg.send(self.out)
+        self.thread_is_exit = True
+
+    def recv_stop_from_sock(self, msg):
+        msg.send(self.out)
+        if None != self.cli_conn:
+            self.is_send_stop_conn = True
+            ModuleMsg(ModuleMsg.STOP_CONN_MSG_TYPE).net_send(self.cli_conn)
+        self.stop_sock()
+
+    def recv_stop_conn_from_sock(self, msg):
+        msg.send(self.out)
+        if None != self.cli_conn:
+            print "recv sock destory cli_conn"
+            if False == self.is_send_stop_conn:
+                msg.net_send(self.cli_conn)
+            else:
+                self.is_send_stop_conn = False
+        self.stop_sock()
+
     def recv_msg_from_sock(self, msg):
-        if msg.msg_type != ModuleMsg.INVALID_MSG_TYPE:
+        if ModuleMsg.EXIT_MSG_TYPE == msg.msg_type:
+            self.recv_exit_from_sock(msg)
+        elif ModuleMsg.THREAD_EXIT_MSG_TYPE == msg.msg_type:
+            self.recv_thread_exit_from_sock(msg)
+        elif ModuleMsg.STOP_MSG_TYPE == msg.msg_type:
+            self.recv_stop_msg_from_sock(msg)
+        elif ModuleMsg.STOP_CONN_MSG_TYPE == msg.msg_type:
+            self.recv_stop_conn_from_sock(msg)
+        elif ModuleMsg.INVALID_MSG_TYPE != msg.msg_type:
             msg.send(self.out)
 
-        if msg.msg_type == ModuleMsg.THREAD_EXIT_MSG_TYPE or msg.msg_type == ModuleMsg.EXIT_MSG_TYPE:
-            self.thread_is_exit = True
-
-
-        if msg.msg_type == ModuleMsg.STOP_CONN_MSG_TYPE:
-            if None != self.cli_conn:
-                print "recv sock destory cli_conn"
-                if False == self.is_send_stop_conn:
-                    msg.net_send(self.cli_conn)
-                else:
-                    self.is_send_stop_conn = False
-                self.inputs.remove(self.cli_conn)
-                self.cli_conn.shutdown(socket.SHUT_RDWR)
-                self.cli_conn.close()
-                self.cli_conn = None
-
-            if None != self.svr_sock:
-                print "recv sock destory svr_conn"
-                self.inputs.remove(self.svr_sock)
-                self.svr_sock.shutdown(socket.SHUT_RDWR)
-                self.svr_sock.close()
-                self.svr_sock = None
 
 
     def work_thread(self):

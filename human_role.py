@@ -159,13 +159,21 @@ class HumanRole(object):
 
 
     def recv_stop_conn_msg(self, msg):
+        print "======================recv_stop_conn_msg====================="
         msg.send(self.interface_out)
 
+        print "recv_stop_conn msg hello1"
         self.color = None
+        print "recv_stop_conn msg hello2"
         self.status = None
+        print "recv_stop_conn msg hello3"
         self.gobang = None
+        print "recv_stop_conn msg hello4"
         self.is_start = False
+        print "recv_stop_conn msg hello5"
         self.time = Gobang.RELAY_TIME
+        print "xxxxxxxxxxxxxxxxxxxx", self.time
+        print "recv_stop_conn msg hello6"
 
 
     def recv_time_msg(self, msg):
