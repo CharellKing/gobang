@@ -68,10 +68,37 @@ class NetRole(object):
             msg.net_send(self.cli_conn)
         self.thread_is_exit = True
 
+        if None != self.cli_conn:
+            print "recv sock destory cli_conn"
+            self.inputs.remove(self.cli_conn)
+            self.cli_conn.close()
+            self.cli_conn = None
+
+        if None != self.svr_sock:
+            print "recv sock destory svr_conn"
+            self.inputs.remove(self.svr_sock)
+            self.svr_sock.close()
+            self.svr_sock = None
+
+
     def recv_exit_from_human(self, msg):
         if None != self.cli_conn:
             msg.net_send(self.cli_conn)
         self.thread_is_exit = True
+
+        if None != self.cli_conn:
+            print "recv sock destory cli_conn"
+            self.inputs.remove(self.cli_conn)
+            self.cli_conn.close()
+            self.cli_conn = None
+
+        if None != self.svr_sock:
+            print "recv sock destory svr_conn"
+            self.inputs.remove(self.svr_sock)
+            self.svr_sock.close()
+            self.svr_sock = None
+
+
 
     def recv_stop_conn_from_human(self, msg):
         if None != self.cli_conn:
@@ -100,14 +127,28 @@ class NetRole(object):
         elif msg.msg_type == ModuleMsg.STOP_CONN_MSG_TYPE:
             self.recv_stop_conn_from_human(msg)
         else:
-            msg.net_send(self.cli_conn)
+            if None != self.cli_conn:
+                msg.net_send(self.cli_conn)
 
     def recv_msg_from_sock(self, msg):
         if msg.msg_type != ModuleMsg.INVALID_MSG_TYPE:
             msg.send(self.out)
 
         if msg.msg_type == ModuleMsg.THREAD_EXIT_MSG_TYPE or msg.msg_type == ModuleMsg.EXIT_MSG_TYPE:
+            if None != self.cli_conn:
+                print "recv sock destory cli_conn"
+                self.inputs.remove(self.cli_conn)
+                self.cli_conn.close()
+                self.cli_conn = None
+
+            if None != self.svr_sock:
+                print "recv sock destory svr_conn"
+                self.inputs.remove(self.svr_sock)
+                self.svr_sock.close()
+                self.svr_sock = None
+
             self.thread_is_exit = True
+
 
         if msg.msg_type == ModuleMsg.STOP_CONN_MSG_TYPE:
             if None != self.cli_conn:
@@ -155,6 +196,10 @@ class NetRole(object):
                 for fd in exceptional:
                     self.thread_is_exit = True
                     ModuleMsg(ModuleMsg.THREAD_EXIT_MSG_TYPE).send(self.out)
+
+        self.inputs.remove(self.fin)
+        os.close(self.fin)
+        os.close(self.out)
 
         if self.cli_conn:
            self.cli_conn.close()

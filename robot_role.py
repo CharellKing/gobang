@@ -13,6 +13,7 @@ from gobang import Gobang, Stone
 
 class RobotRole(object):
     def __init__(self, robot_in, robot_out):
+        self.inputs = []
         self.fin = robot_in
         self.out = robot_out
         self.timeout = None
@@ -71,10 +72,19 @@ class RobotRole(object):
 
     def recv_thread_exit_msg(self, msg):
         self.thread_is_exit = True
+        self.color = None
+        self.time = Gobang.RELAY_TIME
+
+
 
     def send_thread_exit_msg(self):
         ModuleMsg(ModuleMsg.THREAD_EXIT_MSG_TYPE).send(self.out)
         self.thread_is_exit = True
+
+        self.status = None
+        self.time = RELAY_TIME
+
+
 
 
     def recv_stop_msg(self, msg):
@@ -82,18 +92,31 @@ class RobotRole(object):
         if None != x_grid and None != y_grid:
             self.gobang.put_stone(x_grid, y_grid, color)
         self.status = None
+        self.color = None
+        self.time = Gobang.RELAY_TIME
 
     def send_stop_msg(self, ret, x_grid = None, y_grid = None):
         ModuleMsg(ModuleMsg.STOP_MSG_TYPE, [ret, x_grid, y_grid, self.color]).send(self.out)
         self.status = None
+        self.color = None
+        self.time = Gobang.RELAY_TIME
 
     def recv_exit_msg(self, msg):
         self.thread_is_exit = True
+        self.status = None
+        self.color = None
+        self.time = Gobang.RELAY_TIME
+
+        self.thread_is_exit = True
+
 
     def send_exit_msg(self):
         ModuleMsg(ModuleMsg.EXIT_MSG_TYPE).send(self.out)
         self.thread_is_exit = True
         self.status = None
+        self.thread_is_exit = True
+
+
 
 
     def recv_msg(self, msg):
@@ -107,6 +130,8 @@ class RobotRole(object):
             self.recv_thread_exit_msg(msg)
         elif msg.msg_type == ModuleMsg.EXIT_MSG_TYPE:
             self.recv_exit_msg(msg)
+        elif msg.msg_type == ModuleMsg.STOP_MSG_TYPE:
+            self.recv_stop_msg(msg)
 
     def send_time_out(self, msg):
         if self.time > 0:
@@ -123,13 +148,13 @@ class RobotRole(object):
 
 
     def work_thread(self):
-        inputs = [self.fin]
+        self.inputs = [self.fin]
         outputs = []
         timeout = 1
 
         self.thread_is_exit = False
         while False == self.thread_is_exit:
-            readable, writable, exceptional = select.select(inputs, outputs, inputs, timeout)
+            readable, writable, exceptional = select.select(self.inputs, outputs, self.inputs, timeout)
             if readable or writable or exceptional:
                 for fd in readable:
                     if fd is self.fin:
@@ -141,6 +166,10 @@ class RobotRole(object):
 
             elif "GO" == self.status and False == self.thread_is_exit:
                 self.send_time_out(msg)
+
+        self.inputs.remove(self.fin)
+        os.close(self.fin)
+        os.close(self.out)
 
 
     def start(self):

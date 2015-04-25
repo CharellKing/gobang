@@ -53,7 +53,7 @@ class CmdController(object):
                         CmdMsg.HELP: self.show_help}
 
         self.thread_is_exit = True
-
+        self.inputs = []
         self.is_exit = False
 
         self.interface_in = None
@@ -308,9 +308,11 @@ class CmdController(object):
 
 
     def exit_without_promt(self, cmd_msg):
+        print "out exit"
         if False == self.thread_is_exit:
-            self.roles[0].send_thread_exit_msg()
-            self.thread_is_exit = True
+            print "in exit"
+            self.roles[0].send_exit_msg()
+            # self.thread_is_exit = True
         self.is_exit = True
 
         if None != self.roles[0] and None != self.roles[0].work:
@@ -361,6 +363,8 @@ class CmdController(object):
             self.watch_file.write("cmd recv thread exit msg" + "\r\n")
             self.watch_file.flush()
             self.thread_is_exit = True
+            self.inputs.remove(self.interface_in)
+            os.close(self.interface_in)
         elif msg.LISTEN_SUCC_MSG_TYPE == msg.msg_type:
             self.watch_file.write("cmd recv listen success" + "\r\n")
             self.watch_file.flush()
@@ -382,15 +386,16 @@ class CmdController(object):
             self.thread_is_exit = True
             self.is_exit = True
 
+
     def work_thread(self):
-        inputs = [self.interface_in]
+        self.inputs = [self.interface_in]
         outputs = []
         timeout = 1
         self.thread_is_exit = False
         self.watch_file.truncate()
         self.watch_file.flush()
         while False == self.thread_is_exit:
-            readable, writable, exceptional = select.select(inputs, outputs, inputs, timeout)
+            readable, writable, exceptional = select.select(self.inputs, outputs, self.inputs, timeout)
             if readable or writable or exceptional:
                 for fd in readable:
                     if fd is self.interface_in:
@@ -405,6 +410,9 @@ class CmdController(object):
             role.work.join()
 
         self.roles = [None, None]
+
+        self.inputs.remove(self.interface_in)
+        os.close(self.interface_in)
 
 
 

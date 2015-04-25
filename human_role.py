@@ -11,6 +11,7 @@ from gobang import Gobang, Stone
 
 class HumanRole(object):
     def __init__(self, human_in, human_out, human_interface_out):
+        self.inputs = []
         self.fin= human_in
         self.out = human_out
         self.interface_out = human_interface_out
@@ -74,7 +75,7 @@ class HumanRole(object):
     def send_stop_msg(self, self_ret, competitor_ret, x_grid = None, y_grid = None):
         self.is_start = False
         self.status = None
-
+        self.time = Gobang.RELAY_TIME
         msg = ModuleMsg(ModuleMsg.STOP_MSG_TYPE, [competitor_ret, x_grid, y_grid, self.color])
         msg.send(self.out)
 
@@ -91,6 +92,7 @@ class HumanRole(object):
         msg.send(self.interface_out)
         self.is_start = False
         self.status = None
+        self.time = Gobang.RELAY_TIME
 
 
     def send_putdown_msg(self, x_grid, y_grid):
@@ -151,6 +153,7 @@ class HumanRole(object):
         self.color = None
         self.status = None
         self.gobang = None
+        self.time = Gobang.RELAY_TIME
 
 
     def recv_stop_conn_msg(self, msg):
@@ -159,6 +162,7 @@ class HumanRole(object):
         self.color = None
         self.status = None
         self.gobang = None
+        self.time = Gobang.RELAY_TIME
 
 
     def recv_time_msg(self, msg):
@@ -169,26 +173,41 @@ class HumanRole(object):
 
     def send_thread_exit_msg(self):
         self.thread_is_exit = True
+        print "send out exit"
         ModuleMsg(ModuleMsg.THREAD_EXIT_MSG_TYPE).send(self.out)
+        print "send interface exit"
         ModuleMsg(ModuleMsg.THREAD_EXIT_MSG_TYPE).send(self.interface_out)
         self.time = Gobang.RELAY_TIME
+
+        self.color = None
+
+
+
 
 
     def recv_thread_exit_msg(self, msg):
         self.thread_is_exit = True
         msg.send(self.interface_out)
         self.time = Gobang.RELAY_TIME
+        self.color = None
+
+
 
     def send_exit_msg(self):
         self.thread_is_exit = True
+        print "send exit msg"
         ModuleMsg(ModuleMsg.EXIT_MSG_TYPE).send(self.out)
         ModuleMsg(ModuleMsg.EXIT_MSG_TYPE).send(self.interface_out)
+
+
+
 
 
     def recv_exit_msg(self, msg):
         self.thread_is_exit = True
         ModuleMsg(ModuleMsg.EXIT_MSG_TYPE, [msg.content[0]]).send(self.interface_out)
-        self.work.join()
+
+
 
     def send_listen_msg(self, msg):
         msg.send(self.out)
@@ -224,13 +243,13 @@ class HumanRole(object):
             ModuleMsg(ModuleMsg.PROMT_LOG_MSG_TYPE, ["无效的消息"]).send(self.interface_out)
 
     def work_thread(self):
-        inputs = [self.fin]
+        self.inputs = [self.fin]
         outputs = []
         timeout = 1
 
         self.thread_is_exit = False
         while False == self.thread_is_exit:
-            readable, writable, exceptional = select.select(inputs, outputs, inputs, timeout)
+            readable, writable, exceptional = select.select(self.inputs, outputs, self.inputs, timeout)
             if readable or writable or exceptional:
                 for fd in readable:
                     msg_strs = os.read(fd, ModuleMsg.MAX_MSG_LEN).split('\n')
@@ -241,6 +260,10 @@ class HumanRole(object):
 
             elif "GO" == self.status and False == self.thread_is_exit:
                 self.send_time_msg()
+
+        self.inputs.remove(self.fin)
+        os.close(self.fin)
+        os.close(self.out)
 
     def start(self):
         self.work = Thread(target = self.work_thread)
