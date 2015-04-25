@@ -369,8 +369,9 @@ class GuiPanel(wx.Panel):
         elif self.cmd_controller.is_starting():
             self.status_static.SetLabel("您已经在游戏中了")
         else:
-            self.cmd_controller.start_game_without_promt(CmdMsg("start_game"))
             self.InitStartCtrl()
+            self.cmd_controller.start_game_without_promt(CmdMsg("start_game"))
+
 
     def OnStop(self, evt):
         if True == self.cmd_controller.is_starting():

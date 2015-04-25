@@ -154,6 +154,7 @@ class HumanRole(object):
         self.color = None
         self.status = None
         self.gobang = None
+        self.is_start = False
         self.time = Gobang.RELAY_TIME
 
 
@@ -163,6 +164,7 @@ class HumanRole(object):
         self.color = None
         self.status = None
         self.gobang = None
+        self.is_start = False
         self.time = Gobang.RELAY_TIME
 
 
@@ -180,6 +182,7 @@ class HumanRole(object):
         ModuleMsg(ModuleMsg.THREAD_EXIT_MSG_TYPE).send(self.interface_out)
         self.time = Gobang.RELAY_TIME
 
+        self.is_start = False
         self.color = None
 
 
@@ -188,6 +191,7 @@ class HumanRole(object):
 
     def recv_thread_exit_msg(self, msg):
         self.thread_is_exit = True
+        self.is_start = False
         msg.send(self.interface_out)
         self.time = Gobang.RELAY_TIME
         self.color = None
@@ -200,6 +204,7 @@ class HumanRole(object):
         ModuleMsg(ModuleMsg.EXIT_MSG_TYPE).send(self.interface_out)
 
         self.thread_is_exit = True
+        self.is_start = False
 
 
 
@@ -207,6 +212,7 @@ class HumanRole(object):
         ModuleMsg(ModuleMsg.EXIT_MSG_TYPE, [msg.content[0]]).send(self.interface_out)
 
         self.thread_is_exit = True
+        self.is_start = False
 
 
 
