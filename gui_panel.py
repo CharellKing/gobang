@@ -159,14 +159,16 @@ class GuiPanel(wx.Panel):
         if CmdController.NETPLAY_MODE == self.cmd_controller.mode:
             print "1:start btn False"
             self.start_btn.Enable(False)
+            print "1:start btn True"
         elif CmdController.ROBOTPLAY_MODE == self.cmd_controller.mode:
             self.start_btn.Enable(True)
 
         print "1: stop btn false"
         self.stop_btn.Enable(False)
 
-        wx.PostEvent(self, wx.PyCommandEvent(wx.wxEVT_ERASE_BACKGROUND))
-        wx.PostEvent(self.GetEventHandler(), CountTimeEvent())
+        if self.cmd_controller.is_starting():
+            wx.PostEvent(self, wx.PyCommandEvent(wx.wxEVT_ERASE_BACKGROUND))
+            wx.PostEvent(self.GetEventHandler(), CountTimeEvent())
 
 
 
@@ -181,7 +183,6 @@ class GuiPanel(wx.Panel):
         self.connect_btn.Enable(False)
 
         self.start_btn.Enable(True)
-        traceback.print_stack()
         print "2: stop_btn True"
         self.stop_btn.Enable(True)
 
@@ -377,18 +378,18 @@ class GuiPanel(wx.Panel):
             result = dlg.ShowModal()
             if result == wx.ID_YES:
                 if self.cmd_controller.mode == CmdController.NETPLAY_MODE:
-                    self.cmd_controller.stop_conn_without_promt()
                     self.InitStopCtrl()
+                    self.cmd_controller.stop_conn_without_promt()
                 else:
                     print "stop_game"
-                    self.cmd_controller.stop_game_without_promt(CmdMsg("stop_game"))
                     self.InitStopCtrl()
-                wx.PostEvent(self, wx.PyCommandEvent(wx.wxEVT_ERASE_BACKGROUND))
-
+                    self.cmd_controller.stop_game_without_promt(CmdMsg("stop_game"))
             dlg.Destroy()
         else:
-            self.cmd_controller.stop_conn_without_promt()
             self.InitStopCtrl()
+            self.cmd_controller.stop_conn_without_promt()
+            print "gaga"
+
 
     def OnStoneDown(self, evt):
         if self.cmd_controller.is_starting():

@@ -4,6 +4,7 @@
 import os
 import sys
 import traceback
+import time
 
 from threading import Thread
 import socket, select
@@ -26,6 +27,8 @@ class NetRole(object):
 
         self.work = None
 
+        self.is_send_stop_conn = False
+
     def net_is_running(self):
         return (None == self.svr_sock and None != self.cli_conn) or \
           (None != self.svr_sock and None != self.cli_conn)
@@ -34,12 +37,16 @@ class NetRole(object):
     def recv_listen_from_human(self, msg):
         try:
             port = msg.content[0]
+            # self.svr_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            # self.svr_sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
             self.svr_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.svr_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.svr_sock.bind(("127.0.0.1", int(port)))
             self.svr_sock.listen(1)
             self.inputs.append(self.svr_sock)
             ModuleMsg(ModuleMsg.LISTEN_SUCC_MSG_TYPE).send(self.out)
         except:
+            print sys.exc_info()[0],sys.exc_info()[1]
             if self.svr_sock:
                 self.svr_sock.close()
                 self.svr_sock = None
@@ -49,6 +56,7 @@ class NetRole(object):
 
     def recv_conn_from_human(self, msg):
         try:
+            # socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             (host, port) = msg.content
             self.cli_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.cli_conn.connect((host, int(port)))
@@ -68,51 +76,34 @@ class NetRole(object):
             msg.net_send(self.cli_conn)
         self.thread_is_exit = True
 
-        if None != self.cli_conn:
-            print "recv sock destory cli_conn"
-            self.inputs.remove(self.cli_conn)
-            self.cli_conn.close()
-            self.cli_conn = None
-
-        if None != self.svr_sock:
-            print "recv sock destory svr_conn"
-            self.inputs.remove(self.svr_sock)
-            self.svr_sock.close()
-            self.svr_sock = None
-
 
     def recv_exit_from_human(self, msg):
+        print "net recv exit"
         if None != self.cli_conn:
             msg.net_send(self.cli_conn)
         self.thread_is_exit = True
 
-        if None != self.cli_conn:
-            print "recv sock destory cli_conn"
-            self.inputs.remove(self.cli_conn)
-            self.cli_conn.close()
-            self.cli_conn = None
-
-        if None != self.svr_sock:
-            print "recv sock destory svr_conn"
-            self.inputs.remove(self.svr_sock)
-            self.svr_sock.close()
-            self.svr_sock = None
 
 
 
     def recv_stop_conn_from_human(self, msg):
+        print "recv stop conn from human"
         if None != self.cli_conn:
             print "destory cli_conn"
+            self.is_send_stop_conn = True
             msg.net_send(self.cli_conn)
-            self.inputs.remove(self.cli_conn)
-            self.cli_conn.close()
-            self.cli_conn = None
-
-        if None != self.svr_sock:
-            print "destory svr_sock"
+        elif None != self.svr_sock:
+            print "hello1"
             self.inputs.remove(self.svr_sock)
+            print "hello2"
+            self.svr_sock.shutdown(socket.SHUT_RDWR)
+            print "hellox"
             self.svr_sock.close()
+            print "hello3"
             self.svr_sock = None
+            print "hello4"
+        print "end recv stop conn from human"
+
 
 
     def recv_msg_from_human(self, msg):
@@ -126,6 +117,8 @@ class NetRole(object):
             return
         elif msg.msg_type == ModuleMsg.STOP_CONN_MSG_TYPE:
             self.recv_stop_conn_from_human(msg)
+        elif msg.msg_type == ModuleMsg.EXIT_MSG_TYPE:
+            self.recv_exit_from_human(msg)
         else:
             if None != self.cli_conn:
                 msg.net_send(self.cli_conn)
@@ -135,31 +128,25 @@ class NetRole(object):
             msg.send(self.out)
 
         if msg.msg_type == ModuleMsg.THREAD_EXIT_MSG_TYPE or msg.msg_type == ModuleMsg.EXIT_MSG_TYPE:
-            if None != self.cli_conn:
-                print "recv sock destory cli_conn"
-                self.inputs.remove(self.cli_conn)
-                self.cli_conn.close()
-                self.cli_conn = None
-
-            if None != self.svr_sock:
-                print "recv sock destory svr_conn"
-                self.inputs.remove(self.svr_sock)
-                self.svr_sock.close()
-                self.svr_sock = None
-
             self.thread_is_exit = True
 
 
         if msg.msg_type == ModuleMsg.STOP_CONN_MSG_TYPE:
             if None != self.cli_conn:
                 print "recv sock destory cli_conn"
+                if False == self.is_send_stop_conn:
+                    msg.net_send(self.cli_conn)
+                else:
+                    self.is_send_stop_conn = False
                 self.inputs.remove(self.cli_conn)
+                self.cli_conn.shutdown(socket.SHUT_RDWR)
                 self.cli_conn.close()
                 self.cli_conn = None
 
             if None != self.svr_sock:
                 print "recv sock destory svr_conn"
                 self.inputs.remove(self.svr_sock)
+                self.svr_sock.shutdown(socket.SHUT_RDWR)
                 self.svr_sock.close()
                 self.svr_sock = None
 
@@ -183,6 +170,7 @@ class NetRole(object):
                                 msg = ModuleMsg().decode(msg_str)
                                 self.recv_msg_from_human(msg)
                     elif fd is self.svr_sock:
+                        print "hello-x"
                         (self.cli_conn, addr) = self.svr_sock.accept()
                         self.inputs.append(self.cli_conn)
                         ModuleMsg(ModuleMsg.SRV_RECV_CONN_MSG_TYPE, [addr]).send(self.out)

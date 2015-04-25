@@ -148,6 +148,7 @@ class HumanRole(object):
 
 
     def send_stop_conn_msg(self, msg):
+        msg.send(self.interface_out)
         msg.send(self.out)
 
         self.color = None
@@ -194,18 +195,18 @@ class HumanRole(object):
 
 
     def send_exit_msg(self):
-        self.thread_is_exit = True
         print "send exit msg"
         ModuleMsg(ModuleMsg.EXIT_MSG_TYPE).send(self.out)
         ModuleMsg(ModuleMsg.EXIT_MSG_TYPE).send(self.interface_out)
 
-
+        self.thread_is_exit = True
 
 
 
     def recv_exit_msg(self, msg):
-        self.thread_is_exit = True
         ModuleMsg(ModuleMsg.EXIT_MSG_TYPE, [msg.content[0]]).send(self.interface_out)
+
+        self.thread_is_exit = True
 
 
 
@@ -264,6 +265,7 @@ class HumanRole(object):
         self.inputs.remove(self.fin)
         os.close(self.fin)
         os.close(self.out)
+        print "human stop\n"
 
     def start(self):
         self.work = Thread(target = self.work_thread)
