@@ -452,6 +452,8 @@ class GuiPanel(wx.Panel):
             if None != x_grid and None != y_grid:
                 wx.PostEvent(self.GetEventHandler(), PutStoneEvent(msg = ModuleMsg(ModuleMsg.PUT_MSG_TYPE, [color, x_grid, y_grid])))
 
+
+            msg_text = {Gobang.TIED: "你俩打平了", Gobang.SUCCESS: "你赢了", Gobang.FAILED: "你输了", Gobang.UNKNOWN: "游戏终止被终止"}
             wx.CallAfter(self.status_static.SetLabel, msg_text[ret])
 
         elif ModuleMsg.EXIT_MSG_TYPE == msg.msg_type:
