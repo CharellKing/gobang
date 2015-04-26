@@ -379,7 +379,7 @@ class GuiPanel(wx.Panel):
         else:
             self.status_static.SetLabel("connect ....")
             if False == self.cmd_controller.attent_without_promt(CmdMsg("attent %s %s" %(ip, port))):
-                self.status_static.SetLabel("端口不正确")
+                self.status_static.SetLabel("ip或者端口不正确")
 
 
     def OnStart(self, evt):
@@ -397,18 +397,12 @@ class GuiPanel(wx.Panel):
             dlg = wx.MessageDialog(None, "是否停止游戏", '提示', wx.YES_NO | wx.ICON_QUESTION)
             result = dlg.ShowModal()
             if result == wx.ID_YES:
-                if self.cmd_controller.mode == CmdController.NETPLAY_MODE:
-                    self.InitStopCtrl()
-                    self.cmd_controller.stop_conn_without_promt()
-                else:
-                    print "stop_game"
-                    self.InitStopCtrl()
-                    self.cmd_controller.stop_game_without_promt(CmdMsg("stop_game"))
+                self.InitStopCtrl()
+                self.cmd_controller.stop_game_without_promt(CmdMsg("stop_game"))
             dlg.Destroy()
         else:
             self.InitStopCtrl()
-            self.cmd_controller.stop_conn_without_promt()
-            print "gaga"
+            self.cmd_controller.stop_game_without_promt(CmdMsg("stop_game"))
 
 
     def OnStoneDown(self, evt):
@@ -457,16 +451,8 @@ class GuiPanel(wx.Panel):
             (ret, x_grid, y_grid, color) = msg.content
             if None != x_grid and None != y_grid:
                 wx.PostEvent(self.GetEventHandler(), PutStoneEvent(msg = ModuleMsg(ModuleMsg.PUT_MSG_TYPE, [color, x_grid, y_grid])))
-            # self.InitListenOrConnectCtrl()
-
-            msg_text = {Gobang.TIED: "你俩打平了", Gobang.SUCCESS: "你赢了", Gobang.FAILED: "你输了", Gobang.UNKNOWN: "游戏终止"}
-            if ret != Gobang.UNKNOWN:
-                dlg = wx.MessageDialog(None, "您正处于游戏中, 是否要离开", '提示', wx.OK | wx.ICON_INFORMATION)
-                dlg.Show()
 
             wx.CallAfter(self.status_static.SetLabel, msg_text[ret])
-
-            # wx.PostEvent(self, wx.PyCommandEvent(wx.wxEVT_ERASE_BACKGROUND))
 
         elif ModuleMsg.EXIT_MSG_TYPE == msg.msg_type:
             print "hello"
@@ -474,11 +460,7 @@ class GuiPanel(wx.Panel):
             print "some one exit"
             wx.CallAfter(self.status_static.SetLabel,"some one exit")
             self.cmd_controller.thread_is_exit = True
-            # wx.PostEvent(self, wx.PyCommandEvent(wx.wxEVT_ERASE_BACKGROUND))
-        elif ModuleMsg.STOP_CONN_MSG_TYPE == msg.msg_type:
-            self.InitStopCtrl()
-            wx.CallAfter(self.status_static.SetLabel, "停止游戏")
-            # wx.PostEvent(self, wx.PyCommandEvent(wx.wxEVT_ERASE_BACKGROUND))
+
 
 
 

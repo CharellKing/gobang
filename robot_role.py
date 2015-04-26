@@ -41,7 +41,7 @@ class RobotRole(object):
         self.time = Gobang.RELAY_TIME
 
     def recv_putdown_msg(self, msg):
-        (color, x_grid, y_grid) = msg.content
+        (x_grid, y_grid, color) = msg.content
         (put_x_grid, put_y_grid) = (Gobang.GRIDS >> 1, Gobang.GRIDS >> 1)
         if None == x_grid and None == y_grid:
             self.gobang.put_stone(put_x_grid, put_y_grid, self.color)
@@ -49,7 +49,7 @@ class RobotRole(object):
             self.gobang.put_stone(x_grid, y_grid, color)
             (put_x_grid, put_y_grid) = self.gobang.random_stone(self.color)
         self.status = "WAIT"
-        ModuleMsg(ModuleMsg.PUT_MSG_TYPE, [self.color, put_x_grid, put_y_grid]).send(self.out)
+        ModuleMsg(ModuleMsg.PUT_MSG_TYPE, [put_x_grid, put_y_grid, self.color]).send(self.out)
         self.time = Gobang.RELAY_TIME
         self.justy_result(put_x_grid, put_y_grid)
 
@@ -83,8 +83,6 @@ class RobotRole(object):
 
         self.status = None
         self.time = RELAY_TIME
-
-
 
 
     def recv_stop_msg(self, msg):
@@ -144,7 +142,7 @@ class RobotRole(object):
 
             if Gobang.UNKNOWN == self.justy_result(x_grid, y_grid):
 
-                ModuleMsg(ModuleMsg.PUT_MSG_TYPE, [self.color, x_grid, y_grid]).send(out)
+                ModuleMsg(ModuleMsg.PUT_MSG_TYPE, [Gobang.UNKNOWN, x_grid, y_grid, self.color]).send(out)
 
 
     def work_thread(self):

@@ -23,9 +23,10 @@ class Gobang(object):
     GRIDS = 15
 
     SUCCESS = 1
-    FAILED = 2
-    TIED = 3
-    UNKNOWN = 4
+    FAILED = -1
+    TIED = 0
+
+    UNKNOWN = 2
 
     RELAY_TIME = 5
 

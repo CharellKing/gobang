@@ -7,7 +7,6 @@ import re
 from threading import Thread
 import socket, select
 
-from const_str import ConstStr
 from human_role import HumanRole
 from robot_role import RobotRole
 from net_role import NetRole
@@ -57,6 +56,7 @@ class CmdController(object):
         self.is_exit = False
 
         self.interface_in = None
+        self.interface_out = None
         self.work = None
 
         self.thread_func = self.work_thread
@@ -115,7 +115,7 @@ class CmdController(object):
         if cmd_msg.content[1] != self.mode:
             self.mode = cmd_msg.content[1]
             if False == self.thread_is_exit:
-                self.roles[0].send_thread_exit_msg()
+                ModuleMsg(ModuleMsg.THREAD_EXIT_MSG_TYPE).send(self.interface_out)
                 self.work.join()
 
             if CmdController.ROBOTPLAY_MODE == self.mode:
@@ -123,17 +123,15 @@ class CmdController(object):
             else:
                 self.deal_net_mode()
 
-    def stop_conn_without_promt(self):
-        if CmdController.NETPLAY_MODE == self.mode:
-            self.roles[0].send_stop_conn_msg(ModuleMsg(ModuleMsg.STOP_CONN_MSG_TYPE))
 
     def deal_robot_mode(self):
         robot_in, human_out = os.pipe()
         human_in, robot_out = os.pipe()
         self.interface_in, human_interface_out = os.pipe()
+        human_interface_in, self.interface_out = os.pipe()
 
         robot_role = RobotRole(robot_in, robot_out)
-        human_role = HumanRole(human_in, human_out, human_interface_out)
+        human_role = HumanRole(human_in, human_out, human_interface_in, human_interface_out)
         robot_role.start()
         human_role.start()
         self.roles = [human_role, robot_role]
@@ -147,9 +145,10 @@ class CmdController(object):
         net_in, human_out = os.pipe()
         human_in, net_out = os.pipe()
         self.interface_in, human_interface_out = os.pipe()
+        human_interface_in, self.interface_out  = os.pipe()
 
         net_role = NetRole(net_in, net_out)
-        human_role = HumanRole(human_in, human_out, human_interface_out)
+        human_role = HumanRole(human_in, human_out, human_interface_in, human_interface_out)
         net_role.start()
         human_role.start()
         self.roles = [human_role, net_role]
@@ -171,7 +170,7 @@ class CmdController(object):
         self.mode = None
 
         if False == self.thread_is_exit:
-            self.roles[0].send_thread_exit_msg()
+            ModuleMsg(ModuleMsg.THREAD_EXIT_MSG_TYPE).send(self.interface_out)
             self.work.join()
             self.thread_is_exit = True
 
@@ -196,10 +195,7 @@ class CmdController(object):
         if len(cmd_msg.content) >= 2 and True == CmdController.is_int(cmd_msg.content[1]):
             port = int(cmd_msg.content[1])
 
-
-
-        self.roles[0].send_listen_msg(ModuleMsg(ModuleMsg.LISTEN_MSG_TYPE, [port]))
-
+        ModuleMsg(ModuleMsg.LISTEN_MSG_TYPE, [port]).send(self.interface_out)
 
         return True
 
@@ -214,6 +210,7 @@ class CmdController(object):
 
 
     def attent_without_promt(self, cmd_msg):
+        print "attent without promt"
         if None == self.roles[0] or None == self.roles[1]:
             self.deal_net_mode()
 
@@ -227,10 +224,11 @@ class CmdController(object):
 
         host = cmd_msg.content[1]
         port = CmdController.NETWORK_PORT
+        print host, port
         if len(cmd_msg.content) >= 3:
             port = int(cmd_msg.content[2])
 
-        self.roles[0].send_conn_msg(ModuleMsg(ModuleMsg.CONNECT_MSG_TYPE, [host, port]))
+        ModuleMsg(ModuleMsg.CONNECT_MSG_TYPE, [host, port]).send(self.interface_out)
         return True
 
 
@@ -245,7 +243,7 @@ class CmdController(object):
             self.start_game_without_promt(cmd_msg)
 
     def start_game_without_promt(self, cmd_msg):
-        self.roles[0].send_start_msg()
+        ModuleMsg(ModuleMsg.START_MSG_TYPE).send(self.interface_out)
 
 
     def stop_game_with_promt(self, cmd_msg):
@@ -255,8 +253,8 @@ class CmdController(object):
 
 
     def stop_game_without_promt(self, cmd_msg):
-        if True == self.is_starting():
-            self.roles[0].send_stop_msg(Gobang.UNKNOWN, Gobang.UNKNOWN)
+        # if True == self.is_starting():
+        ModuleMsg(ModuleMsg.STOP_MSG_TYPE, [Gobang.UNKNOWN, None, None, None]).send(self.interface_out)
 
 
     @staticmethod
@@ -294,7 +292,7 @@ class CmdController(object):
            y_grid >= 0 and y_grid < Gobang.GRIDS and \
            self.is_starting() and False == self.roles[0].gobang.is_taken_up(x_grid, y_grid) and \
            "GO" == self.roles[0].status:
-            self.roles[0].send_putdown_msg(x_grid, y_grid)
+            ModuleMsg(ModuleMsg.PUT_MSG_TYPE, [x_grid, y_grid, self.roles[0].color]).send(self.interface_out)
 
 
 
@@ -308,11 +306,8 @@ class CmdController(object):
 
 
     def exit_without_promt(self, cmd_msg):
-        print "out exit"
         if False == self.thread_is_exit:
-            print "in exit"
-            self.roles[0].send_exit_msg()
-            # self.thread_is_exit = True
+            ModuleMsg(ModuleMsg.EXIT_MSG_TYPE).send(self.interface_out)
         self.is_exit = True
 
         if None != self.roles[0] and None != self.roles[0].work:
@@ -334,7 +329,7 @@ class CmdController(object):
         print "%s%s%s%s%s%s%s%s%s%s" %("join_mode   进入模式(人机对弈|网络对弈)\n",
                                        "exit_mode   退出模式\n",
                                        "hold        主持游戏(端口)\n",
-                                       "attend      参加游戏(ip, 端口)\n",
+                                       "attent      参加游戏(ip, 端口)\n",
                                        "start_game  开始游戏\n",
                                        "stop_game   停止游戏\n",
                                        "show_chess  显示棋局\n",
@@ -413,6 +408,7 @@ class CmdController(object):
 
         self.inputs.remove(self.interface_in)
         os.close(self.interface_in)
+        os.close(self.interface_out)
 
 
 
