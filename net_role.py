@@ -153,7 +153,7 @@ class NetRole(object):
         if None != self.cli_conn:
             self.is_send_stop_conn = True
             ModuleMsg(ModuleMsg.STOP_CONN_MSG_TYPE).net_send(self.cli_conn)
-        self.stop_sock()
+        # self.stop_sock()
 
     def recv_stop_conn_from_sock(self, msg):
         msg.send(self.out)
@@ -171,7 +171,7 @@ class NetRole(object):
         elif ModuleMsg.THREAD_EXIT_MSG_TYPE == msg.msg_type:
             self.recv_thread_exit_from_sock(msg)
         elif ModuleMsg.STOP_MSG_TYPE == msg.msg_type:
-            self.recv_stop_msg_from_sock(msg)
+            self.recv_stop_from_sock(msg)
         elif ModuleMsg.STOP_CONN_MSG_TYPE == msg.msg_type:
             self.recv_stop_conn_from_sock(msg)
         elif ModuleMsg.INVALID_MSG_TYPE != msg.msg_type:
