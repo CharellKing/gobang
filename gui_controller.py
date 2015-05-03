@@ -14,7 +14,9 @@ class GuiController(object):
     def __init__(self):
         self.cmd_controller = CmdController()
 
+    #gui_controller的入口函数
     def run(self):
+        #弹出nickname的对话框输入昵称
         gettext.install("nickname") # replace with the appropriate catalog name
         app = wx.PySimpleApp(0)
         wx.InitAllImageHandlers()
@@ -28,5 +30,6 @@ class GuiController(object):
             return
 
         self.cmd_controller.set_nickname(NicknameDlg.nickname)
+        #启动游戏界面对话框
         app = GuiApp(self.cmd_controller, 0)
         app.MainLoop()

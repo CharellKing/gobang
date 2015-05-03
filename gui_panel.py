@@ -23,6 +23,7 @@ class GuiPanel(wx.Panel):
     FACTOR = 24.0
     GRID_SIZE = 24
 
+    #初始化，主要是控件的设置
     def __init__(self, parent, cmd_controller):
         self.frame = parent
 
@@ -80,7 +81,7 @@ class GuiPanel(wx.Panel):
         wx.PostEvent(self.robot_radio, wx.PyCommandEvent(wx.EVT_RADIOBUTTON.typeId, self.robot_radio.GetId()))
 
 
-
+    #初始化事件
     def InitEvent(self):
         self.Bind(wx.EVT_BUTTON, self.OnListen, self.listen_btn)
         self.Bind(wx.EVT_BUTTON, self.OnConnect, self.connect_btn)
@@ -97,6 +98,7 @@ class GuiPanel(wx.Panel):
         self.Bind(EVT_COUNT_TIME, self.OnPaintTime)
         self.Bind(EVT_PUT_STONE, self.OnPaintStone)
 
+    #点击选项robot后初始化
     def InitSelectRobot(self):
         print "Init Select Robot"
         self.ip_addr.Show(False)
@@ -113,6 +115,7 @@ class GuiPanel(wx.Panel):
         print "3: stop btn False"
         self.stop_btn.Enable(False)
 
+    #点击选项network后控件初始化
     def InitSelectNetwork(self):
         print "Init Select Network"
         self.ip_addr.Show(True)
@@ -129,6 +132,7 @@ class GuiPanel(wx.Panel):
         print "4: stop btn False"
         self.stop_btn.Enable(False)
 
+    #点击start按钮后控件初始化
     def InitStartCtrl(self):
         self.robot_radio.Enable(False)
         self.network_radio.Enable(False)
@@ -144,7 +148,7 @@ class GuiPanel(wx.Panel):
         print "5: stop btn True"
         self.stop_btn.Enable(True)
 
-
+    #点击stop按钮后控件初始化
     def InitStopCtrl(self):
         self.robot_radio.Enable(True)
         self.network_radio.Enable(True)
@@ -171,7 +175,7 @@ class GuiPanel(wx.Panel):
         wx.PostEvent(self.GetEventHandler(), CountTimeEvent())
 
 
-
+    #点击listen或者connect按钮之后，控件初始化
     def InitListenOrConnectCtrl(self):
         self.robot_radio.Enable(False)
         self.network_radio.Enable(False)
@@ -188,6 +192,7 @@ class GuiPanel(wx.Panel):
 
 
 
+    #获取数字bitmap
     def GetDigitBitmap(self):
         digit_order = [11, 10, 9, 8, 7, 6, 5, 4, 3, 2]
         digit_bmps = []
@@ -200,6 +205,7 @@ class GuiPanel(wx.Panel):
         return digit_bmps
 
 
+    #根据点击的像素坐标转化为x,y格子坐标
     def GetGridOrient(self, x, y):
         x_grid = int(round(x / GuiPanel.FACTOR))
         y_grid = int(round(y / GuiPanel.FACTOR))
@@ -212,7 +218,7 @@ class GuiPanel(wx.Panel):
         return (None, None)
 
 
-
+    #处理关闭消息
     def OnClose(self, evt):
         print "OnClose"
         if True == self.cmd_controller.is_starting():
@@ -228,6 +234,7 @@ class GuiPanel(wx.Panel):
             self.cmd_controller.exit_without_promt(CmdMsg("exit"))
 
 
+    #处理选择robot的按钮
     def OnRobotRadio(self, evt):
         if True == self.cmd_controller.is_starting():
             dlg = wx.MessageDialog(None, "您正在游戏中,是否离开?", '提示', wx.YES_NO | wx.ICON_INFORMATION)
@@ -240,7 +247,7 @@ class GuiPanel(wx.Panel):
 
 
 
-
+    #处理选择network的按钮
     def OnNetworkRadio(self, evt):
         if True == self.cmd_controller.is_starting():
             dlg = wx.MessageDialog(None, "您正在游戏中,是否离开?", '提示', wx.YES_NO | wx.ICON_INFORMATION)
@@ -254,7 +261,7 @@ class GuiPanel(wx.Panel):
             self.cmd_controller.join_mode_without_promt(CmdMsg("join_mode 网络对弈"))
 
 
-
+    #刷屏幕
     def OnEraseBackground(self, evt):
         # dc = wx.ClientDC(self)
         # rect = self.GetUpdateRegion().GetBox()
@@ -289,11 +296,7 @@ class GuiPanel(wx.Panel):
 
 
 
-
-
-
-
-
+    #画棋子
     def OnPaintStone(self, evt):
         dc = wx.ClientDC(self)
         rect = wx.Rect(0, 0, GuiPanel.FACTOR * (Gobang.GRIDS + 1), GuiPanel.FACTOR * (Gobang.GRIDS + 1))
@@ -318,6 +321,7 @@ class GuiPanel(wx.Panel):
         #         dc.DrawBitmap(bmp, (stone.x_grid + 1) * GuiPanel.FACTOR, (stone.y_grid + 1) * GuiPanel.FACTOR)
 
 
+    #画计时的数字
     def OnPaintTime(self, evt):
         dc = wx.ClientDC(self)
         rect = self.GetUpdateRegion().GetBox()
@@ -345,13 +349,14 @@ class GuiPanel(wx.Panel):
             dc.DrawBitmap(bmp, 450, 0)
 
 
-    def EnableOrDisableCtrl(self, status):
-        self.listen_btn.Disable(status)
-        self.connect_btn.Disable(status)
-        self.network_radio.Disable(status)
-        self.robot_radio.Disable(status)
+    # def EnableOrDisableCtrl(self, status):
+    #     self.listen_btn.Disable(status)
+    #     self.connect_btn.Disable(status)
+    #     self.network_radio.Disable(status)
+    #     self.robot_radio.Disable(status)
 
 
+    #处理监听按钮
     def OnListen(self, evt):
         ip = self.ip_addr.GetValue()
         port = self.port.GetValue()
@@ -366,8 +371,7 @@ class GuiPanel(wx.Panel):
                 self.status_static.SetLabel("端口不正确")
 
 
-
-
+    #处理连接按钮
     def OnConnect(self, evt):
         ip = self.ip_addr.GetValue()
         port = self.port.GetValue()
@@ -382,6 +386,7 @@ class GuiPanel(wx.Panel):
                 self.status_static.SetLabel("ip或者端口不正确")
 
 
+    #处理点击start按钮事件
     def OnStart(self, evt):
         if CmdController.NETPLAY_MODE == self.cmd_controller.mode and False == self.cmd_controller.is_net_running():
             self.status_static.SetLabel("您处于%s模式, 对弈双方网络连接还没有连接起来" %(self.cmd_controller.mode))
@@ -392,6 +397,7 @@ class GuiPanel(wx.Panel):
             self.cmd_controller.start_game_without_promt(CmdMsg("start_game"))
 
 
+    #处理点击stop按钮事件
     def OnStop(self, evt):
         if True == self.cmd_controller.is_starting():
             dlg = wx.MessageDialog(None, "是否停止游戏", '提示', wx.YES_NO | wx.ICON_QUESTION)
@@ -405,6 +411,7 @@ class GuiPanel(wx.Panel):
             self.cmd_controller.stop_game_without_promt(CmdMsg("stop_game"))
 
 
+    #处理点击棋盘下子的事件
     def OnStoneDown(self, evt):
         if self.cmd_controller.is_starting():
             if "GO" == self.cmd_controller.roles[0].status:
@@ -420,7 +427,7 @@ class GuiPanel(wx.Panel):
         else:
             self.status_static.SetLabel("游戏还没开始")
 
-
+    #处理接收到的消息
     def recv_msg(self, msg):
         if ModuleMsg.PROMT_LOG_MSG_TYPE == msg.msg_type:
             wx.CallAfter(self.status_static.SetLabel,"%s" %(msg.content[0]))
@@ -465,7 +472,7 @@ class GuiPanel(wx.Panel):
 
 
 
-
+    #gui_controller的线程函数
     def work_thread(self):
         inputs = [self.cmd_controller.interface_in]
         timeout = 1

@@ -28,16 +28,17 @@ class HumanRole(object):
 
         self.is_start = False
 
+    #判断游戏是否开始
     def is_starting(self):
         return None != self.status and True == self.is_start
 
+    #将对方的颜色通过管道消息的方式发送给对方
     def send_color_msg(self):
         ModuleMsg(ModuleMsg.PROMT_LOG_MSG_TYPE, ["human send color msg"]).send(self.interface_out)
 
         self.time = Gobang.RELAY_TIME
         self.color = Gobang.random_order()
         self.gobang = Gobang()
-        print "send %d" %(self.color)
         ModuleMsg(ModuleMsg.COLOR_MSG_TYPE, [not self.color]).send(self.out)
         if self.color == Stone.WHITE:
             self.status = "GO"
@@ -45,20 +46,18 @@ class HumanRole(object):
             self.status = "WAIT"
 
 
-
+    #接收对方发送给自己的颜色的消息
     def recv_color_msg(self, msg):
         ModuleMsg(ModuleMsg.PROMT_LOG_MSG_TYPE, ["human recv color msg"]).send(self.interface_out)
         color = msg.content[0]
         self.is_start = True
         self.color = color
-        print "recv %d" %(self.color)
         if Stone.WHITE == color:
             self.status = "GO"
-            print "human go"
         else:
             self.status = "WAIT"
-            print "human wait"
 
+    #发送开始游戏的消息
     def send_start_msg(self, msg):
         ModuleMsg(ModuleMsg.PROMT_LOG_MSG_TYPE, ["human send start msg"]).send(self.interface_out)
 
@@ -66,15 +65,15 @@ class HumanRole(object):
         self.is_start = True
         msg.send(self.out)
 
+    #接收对方开始的消息
     def recv_start_msg(self, msg):
         ModuleMsg(ModuleMsg.PROMT_LOG_MSG_TYPE, ["human recv start_msg"]).send(self.interface_out)
 
         if True == self.is_start:
             self.send_color_msg()
 
-
+    #发送停止的消息
     def send_stop_msg(self, msg):
-        print "send_stop_msg"
         self.is_start = False
         self.status = None
         self.time = Gobang.RELAY_TIME
@@ -90,7 +89,7 @@ class HumanRole(object):
         ModuleMsg(ModuleMsg.STOP_MSG_TYPE, [self_ret, x_grid, y_grid, color]).send(self.interface_out)
 
 
-
+    # 接收对方停止游戏的消息
     def recv_stop_msg(self, msg):
         (ret, x_grid, y_grid, color) = msg.content
         if None != x_grid and None != y_grid:
@@ -101,6 +100,7 @@ class HumanRole(object):
         self.time = Gobang.RELAY_TIME
 
 
+    #发送下子的消息
     def send_putdown_msg(self, msg):
         (x_grid, y_grid, color) = msg.content
         self.time = Gobang.RELAY_TIME
@@ -112,6 +112,7 @@ class HumanRole(object):
             msg.send(self.interface_out)
 
 
+    #判断棋局是否出现结果
     def justy_result(self, x_grid, y_grid):
         self_ret = Gobang.UNKNOWN
         if True == self.gobang.is_tie(x_grid, y_grid):
@@ -124,6 +125,7 @@ class HumanRole(object):
             self.send_stop_msg(msg)
         return self_ret
 
+    # 接收对方落子的消息
     def recv_putdown_msg(self, msg):
         (x_grid, y_grid, color) = msg.content
         self.gobang.put_stone(x_grid, y_grid, color)
@@ -132,6 +134,7 @@ class HumanRole(object):
         self.status = "GO"
         self.time = Gobang.RELAY_TIME
 
+    # 发送计时
     def send_time_msg(self):
         if self.time > 0:
             ModuleMsg(ModuleMsg.PROMT_LOG_MSG_TYPE, ["human: send time msg"]).send(self.interface_out)
@@ -151,12 +154,14 @@ class HumanRole(object):
                 msg.send(self.out)
 
 
+    #接收计时
     def recv_time_msg(self, msg):
         time = msg.content[0]
         msg.send(self.interface_out)
         self.time = time
 
 
+    #发送线程结束的消息
     def send_thread_exit_msg(self, msg):
         self.thread_is_exit = True
         msg.send(self.out)
@@ -166,8 +171,7 @@ class HumanRole(object):
         self.is_start = False
         self.color = None
 
-
-
+    #接收对方线程结束的消息
     def recv_thread_exit_msg(self, msg):
         self.thread_is_exit = True
         self.is_start = False
@@ -176,7 +180,7 @@ class HumanRole(object):
         self.color = None
 
 
-
+    #发送游戏退出的消息
     def send_exit_msg(self, msg):
         msg.send(self.out)
         msg.send(self.interface_out)
@@ -185,21 +189,22 @@ class HumanRole(object):
         self.is_start = False
 
 
-
+    # 接收对方游戏退出的消息
     def recv_exit_msg(self, msg):
         ModuleMsg(ModuleMsg.EXIT_MSG_TYPE, [msg.content[0]]).send(self.interface_out)
 
         self.thread_is_exit = True
         self.is_start = False
 
-
-
+    #发送监听的消息给cmd_controller或者gui_controller
     def send_listen_msg(self, msg):
         msg.send(self.out)
 
+    #发送连接消息给cmd_controller或者gui_controller
     def send_conn_msg(self, msg):
         msg.send(self.out)
 
+    #处理接收来自己对方的消息
     def recv_msg(self, msg):
         if msg.msg_type == ModuleMsg.START_MSG_TYPE:
             self.recv_start_msg(msg)
@@ -224,11 +229,11 @@ class HumanRole(object):
         else:
             ModuleMsg(ModuleMsg.PROMT_LOG_MSG_TYPE, ["[%d]无效的消息" %(msg.msg_type)]).send(self.interface_out)
 
+    #处理来自界面（cmd、gui）的消息，主要是将消息转化给对方
     def recv_msg_from_interface(self, msg):
         if msg.msg_type == ModuleMsg.LISTEN_MSG_TYPE:
             self.send_listen_msg(msg)
         elif msg.msg_type == ModuleMsg.CONNECT_MSG_TYPE:
-            print "send_conn_msg"
             self.send_conn_msg(msg)
         elif msg.msg_type == ModuleMsg.START_MSG_TYPE:
             self.send_start_msg(msg)
@@ -244,6 +249,7 @@ class HumanRole(object):
             ModuleMsg(ModuleMsg.PROMT_LOG_MSG_TYPE, ["[%d]无效的消息" %(msg.msg_type)]).send(self.interface_out)
 
 
+    # human_role的线程
     def work_thread(self):
         self.inputs = [self.fin, self.interface_in]
         outputs = []
@@ -277,8 +283,8 @@ class HumanRole(object):
         os.close(self.interface_in)
         os.close(self.out)
         os.close(self.interface_out)
-        print "human stop\n"
 
+    #开启线程
     def start(self):
         self.work = Thread(target = self.work_thread)
         self.work.start()

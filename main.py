@@ -8,6 +8,8 @@ from get_opt import GetOpt
 from cmd_controller import CmdController
 from gui_controller import GuiController
 
+# 命令参数化 --cmd命令行模式
+# gui参数   --gui命令行模式
 def usage():
     return "usage:%s%s%s%s" %("[--cmd] 命令行模式\n",
                               "[--gui] 图形化模式\n",

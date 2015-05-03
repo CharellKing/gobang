@@ -65,15 +65,19 @@ class CmdController(object):
     def set_nickname(self, nickname):
         self.nickname = nickname
 
+    # 设置线程函数
     def set_thread_func(self, thread_func):
         self.thread_func = thread_func
 
+    # 判断游戏是否已经开始，即判断human_role是否已经开始了
     def is_starting(self):
         return None != self.roles[0] and True == self.roles[0].is_starting()
 
+    # 判断网络是否运行了
     def is_net_running(self):
         return CmdController.NETPLAY_MODE == self.mode and None != self.roles[1] and True == self.roles[1].net_is_running()
 
+    #命令行的提示【昵称@模式 颜色【状态】$】
     def input_promt(self):
         color_str = ""
         if None != self.roles[0] and None != self.roles[0].color:
@@ -85,25 +89,30 @@ class CmdController(object):
 
         return "%s@%s %s[%s]$" %(str(self.nickname), str(self.mode), color_str, status)
 
+    #raw_input 等待外部输入
     def input(self, promt):
         return raw_input("%s %s>" %(self.input_promt(), promt)).strip('\n')
 
+    #输出命令行的提示
     def output_promt(self):
         return "哈喽, %s!" %(str(self.nickname))
 
+    #输出命令提示
     def output(self, promt):
         print "%s %s." %(self.output_promt(), promt)
 
+    #输入nickname
     def input_nickname(self):
         while None == self.nickname or "" == self.nickname:
             self.nickname = self.input("请输入您的昵称")
 
         self.output("欢迎进入五子棋的世界")
 
+    #有提示加入模式
     def join_mode_with_promt(self, cmd_msg):
         if len(cmd_msg.content) <= 1 or \
           (cmd_msg.content[1] != CmdController.NETPLAY_MODE and \
-           cmd_msg.content[1] != ConstStr.ROBOTPLAY_MODE):
+           cmd_msg.content[1] != CmdController.ROBOTPLAY_MODE):
             self.output("[join_mode] 后面应该紧跟正确的模式名称[%s|%s]" %(CmdController.NETPLAY_MODE, CmdController.ROBOTPLAY_MODE))
         elif None != self.mode and cmd_msg.content[1] != self.mode:
             if ('y' == self.input("您正处于[%s]模式, 是否要离开(y-yes, n-no)" %(self.mode))):
@@ -111,6 +120,7 @@ class CmdController(object):
         else:
             self.join_mode_without_promt(cmd_msg)
 
+    #无提示加入模式，主要是为GUI模式提供接口
     def join_mode_without_promt(self, cmd_msg):
         if cmd_msg.content[1] != self.mode:
             self.mode = cmd_msg.content[1]
@@ -123,7 +133,7 @@ class CmdController(object):
             else:
                 self.deal_net_mode()
 
-
+    #处理机器人模式
     def deal_robot_mode(self):
         robot_in, human_out = os.pipe()
         human_in, robot_out = os.pipe()
@@ -140,7 +150,7 @@ class CmdController(object):
         self.work.start()
 
 
-
+    #处理网络模式
     def deal_net_mode(self):
         net_in, human_out = os.pipe()
         human_in, net_out = os.pipe()
@@ -157,7 +167,7 @@ class CmdController(object):
         self.work.start()
 
 
-
+    #有提示退出模式
     def exit_mode_with_promt(self, cmd_msg):
         if None != self.mode:
             if ('y' == self.input("您正处于[%s]模式, 是否要离开(y-yes, n-no)" %(self.mode))):
@@ -165,7 +175,7 @@ class CmdController(object):
         else:
             self.exit_mode_without_promt(cmd_msg)
 
-
+    #无提示退出模式
     def exit_mode_without_promt(self, cmd_msg):
         self.mode = None
 
@@ -174,6 +184,7 @@ class CmdController(object):
             self.work.join()
             self.thread_is_exit = True
 
+    #有提示监听
     def hold_with_promt(self, cmd_msg):
         if True == self.is_starting():
             self.output("游戏正开始中")
@@ -183,8 +194,7 @@ class CmdController(object):
             if False == self.hold_without_promt(cmd_msg):
                 self.output("端口不正确")
 
-
-
+    #无提示监听
     def hold_without_promt(self, cmd_msg):
         if None == self.roles[0] or None == self.roles[1]:
             self.deal_net_mode()
@@ -199,6 +209,7 @@ class CmdController(object):
 
         return True
 
+    #有提示连接
     def attent_with_promt(self, cmd_msg):
         if True == self.is_starting():
             self.output("游戏正开始中")
@@ -208,9 +219,8 @@ class CmdController(object):
             if False == self.attent_without_promt(cmd_msg):
                 self.output("加入网络对弈失败")
 
-
+    #无提示连接
     def attent_without_promt(self, cmd_msg):
-        print "attent without promt"
         if None == self.roles[0] or None == self.roles[1]:
             self.deal_net_mode()
 
@@ -224,14 +234,13 @@ class CmdController(object):
 
         host = cmd_msg.content[1]
         port = CmdController.NETWORK_PORT
-        print host, port
         if len(cmd_msg.content) >= 3:
             port = int(cmd_msg.content[2])
 
         ModuleMsg(ModuleMsg.CONNECT_MSG_TYPE, [host, port]).send(self.interface_out)
         return True
 
-
+    # 有提示开始游戏
     def start_game_with_promt(self, cmd_msg):
         if None == self.mode:
             self.output("您还没有进入任何模式")
@@ -242,21 +251,23 @@ class CmdController(object):
         else:
             self.start_game_without_promt(cmd_msg)
 
+    # 无提示开始游戏
     def start_game_without_promt(self, cmd_msg):
         ModuleMsg(ModuleMsg.START_MSG_TYPE).send(self.interface_out)
 
-
+    # 有提示停止游戏
     def stop_game_with_promt(self, cmd_msg):
         if True == self.is_starting():
             if "y" == self.input("是否停止游戏(y-是, n-否)"):
                 self.stop_game_without_promt(cmd_msg)
 
-
+    # 无提示停止游戏
     def stop_game_without_promt(self, cmd_msg):
         # if True == self.is_starting():
         ModuleMsg(ModuleMsg.STOP_MSG_TYPE, [Gobang.UNKNOWN, None, None, None]).send(self.interface_out)
 
 
+    #判断字符串是否是整形
     @staticmethod
     def is_int(str):
         try:
@@ -265,6 +276,7 @@ class CmdController(object):
         except:
             return False
 
+    #判断字符串是否是ip地址，正则表达式
     @staticmethod
     def is_ip(str):
         values = re.match(r"^(((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(:[1-9]\d*){0,1}).*" , str)
@@ -273,6 +285,7 @@ class CmdController(object):
         else:
             return True
 
+    #有提示下子
     def put_down_with_promt(self, cmd_msg):
         if False == self.is_starting():
             self.output("游戏还没开始运行")
@@ -284,6 +297,7 @@ class CmdController(object):
             self.put_down_without_promt(cmd_msg)
 
 
+    #无提示下子
     def put_down_without_promt(self, cmd_msg):
         x_grid = int(cmd_msg.content[1])
         y_grid = int(cmd_msg.content[2])
@@ -296,6 +310,7 @@ class CmdController(object):
 
 
 
+    #有提示退出游戏
     def exit_with_promt(self, cmd_msg):
         if True == self.is_starting() and 'y' == self.input("您正处于运行状态,是否要离开?(y-是, n-否)"):
             self.output("拜拜!")
@@ -305,6 +320,7 @@ class CmdController(object):
             self.exit_without_promt(cmd_msg)
 
 
+    #无提示退出游戏
     def exit_without_promt(self, cmd_msg):
         if False == self.thread_is_exit:
             ModuleMsg(ModuleMsg.EXIT_MSG_TYPE).send(self.interface_out)
@@ -317,6 +333,7 @@ class CmdController(object):
         if None != self.work:
             self.work.join()
 
+    #显示棋盘信息
     def show_chess(self, cmd_msg):
         if False == self.is_starting():
             self.output("游戏还没开始")
@@ -325,6 +342,7 @@ class CmdController(object):
             for i in xrange (0, Gobang.GRIDS):
                 print "%s" %(''.join(chess[i]))
 
+    #显示命令行帮助信息
     def show_help(self, cmd_msg):
         print "%s%s%s%s%s%s%s%s%s%s" %("join_mode   进入模式(人机对弈|网络对弈)\n",
                                        "exit_mode   退出模式\n",
@@ -337,6 +355,7 @@ class CmdController(object):
                                        "exit        退出游戏\n",
                                        "help        帮助\n")
 
+    # 循环交互部分
     def interact(self):
         while(False == self.is_exit):
             line = self.input("")
@@ -350,6 +369,7 @@ class CmdController(object):
                 self.handles[cmd_msg.content[0]](cmd_msg)
 
 
+    # 处理接受的消息
     def recv_msg(self, msg):
         if msg.msg_type == ModuleMsg.PROMT_LOG_MSG_TYPE:
             self.watch_file.write(msg.content[0] + "\r\n")
@@ -382,6 +402,7 @@ class CmdController(object):
             self.is_exit = True
 
 
+    #cmd_controller的工作线程，用于接受human_role的接受消息
     def work_thread(self):
         self.inputs = [self.interface_in]
         outputs = []
@@ -401,17 +422,19 @@ class CmdController(object):
                                 self.recv_msg(msg)
 
 
+        #退出的时候等待human_role和与其交互的role的结束，主要是其线程结束
         for role in self.roles:
             role.work.join()
 
         self.roles = [None, None]
 
+        #关闭文件句柄
         self.inputs.remove(self.interface_in)
         os.close(self.interface_in)
         os.close(self.interface_out)
 
 
-
+    #cmd_controller的入口函数
     def run(self):
         self.input_nickname()
         self.watch_file = open("watch_%d_%s.log" %(os.getpid(), self.nickname), 'w')

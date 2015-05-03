@@ -6,7 +6,7 @@ import wx
 
 import gettext
 
-
+#nickname对话框
 class NicknameDlg(wx.Dialog):
     nickname = None
     def __init__(self, *args, **kwds):
