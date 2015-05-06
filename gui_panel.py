@@ -276,8 +276,25 @@ class GuiPanel(wx.Panel):
         bmp = wx.Bitmap("res/bg.bmp")
         dc.DrawBitmap(bmp, 0, 0)
 
-        wx.PostEvent(self.GetEventHandler(), CountTimeEvent())
-        wx.PostEvent(self.GetEventHandler(), PutStoneEvent())
+        if self.cmd_controller.is_starting():
+            human_role = self.cmd_controller.roles[0]
+            dc.DrawBitmap(self.digit_bmps[0 if human_role.time < 10 else human_role.time / 10], 400, 0)
+            dc.DrawBitmap(self.digit_bmps[human_role.time % 10], 400 + self.digit_bmps[0].Width, 0)
+        else:
+            dc.DrawBitmap(self.digit_bmps[0 if Gobang.RELAY_TIME < 10 else Gobang.RELAY_TIME / 10], 400, 0)
+            dc.DrawBitmap(self.digit_bmps[Gobang.RELAY_TIME % 10], 400 + self.digit_bmps[0].Width, 0)
+
+        if self.cmd_controller.roles[0] and self.cmd_controller.roles[0].gobang:
+            dc.Clear()
+            bmp = wx.Bitmap("res/bg.bmp")
+            dc.DrawBitmap(bmp, 0, 0)
+
+            human_role = self.cmd_controller.roles[0]
+            for stone in human_role.gobang.stones.values():
+                bmp = wx.Bitmap("res/blackstone.bmp" if Stone.BLACK == stone.color else "res/whitestone.bmp")
+                dc.DrawBitmap(bmp, (stone.x_grid) * GuiPanel.FACTOR + GuiPanel.FACTOR / 2, (stone.y_grid) * GuiPanel.FACTOR + GuiPanel.FACTOR / 2)
+
+        # wx.PostEvent(self.GetEventHandler(), PutStoneEvent())
 
         # if False == self.cmd_controller.is_starting():
         #     rect = wx.Rect(0, 0, GuiPanel.FACTOR * Gobang.GRIDS, GuiPanel.FACTOR * Gobang.GRIDS)
@@ -303,7 +320,7 @@ class GuiPanel(wx.Panel):
         dc.SetClippingRect(rect)
 
 
-        if self.cmd_controller.is_starting():
+        if self.cmd_controller.roles[0] and self.cmd_controller.roles[0].gobang:
             dc.Clear()
             bmp = wx.Bitmap("res/bg.bmp")
             dc.DrawBitmap(bmp, 0, 0)
