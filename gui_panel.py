@@ -281,6 +281,7 @@ class GuiPanel(wx.Panel):
             dc.DrawBitmap(self.digit_bmps[0 if human_role.time < 10 else human_role.time / 10], 400, 0)
             dc.DrawBitmap(self.digit_bmps[human_role.time % 10], 400 + self.digit_bmps[0].Width, 0)
         else:
+            print "paint time"
             dc.DrawBitmap(self.digit_bmps[0 if Gobang.RELAY_TIME < 10 else Gobang.RELAY_TIME / 10], 400, 0)
             dc.DrawBitmap(self.digit_bmps[Gobang.RELAY_TIME % 10], 400 + self.digit_bmps[0].Width, 0)
 
@@ -320,22 +321,24 @@ class GuiPanel(wx.Panel):
         dc.SetClippingRect(rect)
 
 
-        if self.cmd_controller.roles[0] and self.cmd_controller.roles[0].gobang:
-            dc.Clear()
-            bmp = wx.Bitmap("res/bg.bmp")
-            dc.DrawBitmap(bmp, 0, 0)
+        # if self.cmd_controller.roles[0] and self.cmd_controller.roles[0].gobang:
+        #     dc.Clear()
+        #     bmp = wx.Bitmap("res/bg.bmp")
+        #     dc.DrawBitmap(bmp, 0, 0)
 
-            human_role = self.cmd_controller.roles[0]
-            for stone in human_role.gobang.stones.values():
-                bmp = wx.Bitmap("res/blackstone.bmp" if Stone.BLACK == stone.color else "res/whitestone.bmp")
-                dc.DrawBitmap(bmp, (stone.x_grid) * GuiPanel.FACTOR + GuiPanel.FACTOR / 2, (stone.y_grid) * GuiPanel.FACTOR + GuiPanel.FACTOR / 2)
-
-        # if self.cmd_controller.is_starting():
         #     human_role = self.cmd_controller.roles[0]
-        #     if len(human_role.gobang.stack) > 0:
-        #         stone = human_role.gobang.stack[-1]
-        #         bmp = wx.Bitmap("res/blackstone.bmp" if Stone.WHITE == stone.color else "res/whitestone.bmp")
-        #         dc.DrawBitmap(bmp, (stone.x_grid + 1) * GuiPanel.FACTOR, (stone.y_grid + 1) * GuiPanel.FACTOR)
+        #     for stone in human_role.gobang.stones.values():
+        #         bmp = wx.Bitmap("res/blackstone.bmp" if Stone.BLACK == stone.color else "res/whitestone.bmp")
+        #         dc.DrawBitmap(bmp, (stone.x_grid) * GuiPanel.FACTOR + GuiPanel.FACTOR / 2, (stone.y_grid) * GuiPanel.FACTOR + GuiPanel.FACTOR / 2)
+
+
+        if self.cmd_controller.is_starting():
+            msg = evt.msg
+            (x_grid, y_grid, color) = msg.content
+            print x_grid, y_grid, color
+            bmp = wx.Bitmap("res/whitestone.bmp" if Stone.WHITE == color else "res/blackstone.bmp")
+            dc.DrawBitmap(bmp, x_grid * GuiPanel.FACTOR + GuiPanel.FACTOR / 2, y_grid * GuiPanel.FACTOR + GuiPanel.FACTOR / 2)
+
 
 
     #画计时的数字
@@ -412,6 +415,7 @@ class GuiPanel(wx.Panel):
         else:
             self.InitStartCtrl()
             self.cmd_controller.start_game_without_promt(CmdMsg("start_game"))
+            wx.PostEvent(self, wx.PyCommandEvent(wx.wxEVT_ERASE_BACKGROUND))
 
 
     #处理点击stop按钮事件
@@ -474,7 +478,7 @@ class GuiPanel(wx.Panel):
             self.InitStopCtrl()
             (ret, x_grid, y_grid, color) = msg.content
             if None != x_grid and None != y_grid:
-                wx.PostEvent(self.GetEventHandler(), PutStoneEvent(msg = ModuleMsg(ModuleMsg.PUT_MSG_TYPE, [color, x_grid, y_grid])))
+                wx.PostEvent(self.GetEventHandler(), PutStoneEvent(msg = ModuleMsg(ModuleMsg.PUT_MSG_TYPE, [x_grid, y_grid, color])))
 
 
             msg_text = {Gobang.TIED: "你俩打平了", Gobang.SUCCESS: "你赢了", Gobang.FAILED: "你输了", Gobang.UNKNOWN: "游戏终止被终止"}
