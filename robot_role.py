@@ -25,6 +25,8 @@ class RobotRole(object):
         self.time = None
         self.gobang = None
 
+        self.nickname = "robot"
+
 
     #接收来自human_role的开始游戏的消息
     def recv_start_msg(self, msg):

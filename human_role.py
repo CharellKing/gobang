@@ -67,7 +67,8 @@ class HumanRole(object):
 
     #接收对方开始的消息
     def recv_start_msg(self, msg):
-        ModuleMsg(ModuleMsg.PROMT_LOG_MSG_TYPE, ["human recv start_msg"]).send(self.interface_out)
+        msg.send(self.interface_out)
+        # ModuleMsg(ModuleMsg.PROMT_LOG_MSG_TYPE, ["human recv start_msg"]).send(self.interface_out)
 
         if True == self.is_start:
             self.send_color_msg()
@@ -137,7 +138,6 @@ class HumanRole(object):
     # 发送计时
     def send_time_msg(self):
         if self.time > 0:
-            ModuleMsg(ModuleMsg.PROMT_LOG_MSG_TYPE, ["human: send time msg"]).send(self.interface_out)
             self.time -= 1
             msg = ModuleMsg(ModuleMsg.TIME_MSG_TYPE, [self.time])
             msg.send(self.interface_out)

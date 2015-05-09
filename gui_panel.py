@@ -39,7 +39,7 @@ class GuiPanel(wx.Panel):
         self.start_btn = None
         self.stop_btn = None
         self.status_static = None
-
+        self.list_ctrl = None
 
         self.cmd_controller = cmd_controller
         self.cmd_controller.set_thread_func(self.work_thread)
@@ -77,6 +77,14 @@ class GuiPanel(wx.Panel):
         self.count_time_event = None
         self.evt_count_time = None
 
+        self.list_static = wx.StaticText(self, -1, "排行：", (10, 390), (100, 60), 0)
+
+        self.list_ctrl = wx.ListCtrl(self, pos = (10, 420), size=(400,150), style=wx.LC_REPORT | wx.BORDER_SUNKEN)
+        self.list_ctrl.InsertColumn(0, '昵称')
+        self.list_ctrl.InsertColumn(1, '胜利次数', width = 125)
+        self.list_ctrl.InsertColumn(2, '失败次数', width = 125)
+
+        self.RefreshList()
 
         wx.PostEvent(self.robot_radio, wx.PyCommandEvent(wx.EVT_RADIOBUTTON.typeId, self.robot_radio.GetId()))
 
@@ -191,6 +199,22 @@ class GuiPanel(wx.Panel):
         self.stop_btn.Enable(True)
 
 
+    def InsertItem(self, nickname, pos):
+        pos = self.list_ctrl.InsertStringItem(0, nickname)
+
+    def RefreshList(self):
+        print "Refresh List"
+        top_users = self.cmd_controller.get_top_users()
+        wx.CallAfter(self.list_ctrl.DeleteAllItems)
+        # self.list_ctrl.DeleteAllItems()
+        pos = 0
+        for user in top_users:
+            wx.CallAfter(self.list_ctrl.InsertStringItem, pos, user.nickname)
+            wx.CallAfter(self.list_ctrl.SetStringItem, pos, 1, str(user.win_times))
+            wx.CallAfter(self.list_ctrl.SetStringItem, pos, 2, str(user.fail_times))
+            # pos = self.list_ctrl.InsertStringItem(0, user.nickname)
+            # self.list_ctrl.SetStringItem(pos, 1, str(user.win_times))
+            # self.list_ctrl.SetStringItem(pos, 2, str(user.fail_times))
 
     #获取数字bitmap
     def GetDigitBitmap(self):
@@ -477,13 +501,23 @@ class GuiPanel(wx.Panel):
         elif ModuleMsg.STOP_MSG_TYPE == msg.msg_type:
             self.InitStopCtrl()
             (ret, x_grid, y_grid, color) = msg.content
+
+            if CmdController.NETPLAY_MODE == self.cmd_controller.mode:
+                print "=============opp_nickname=========%s" %(self.cmd_controller.opp_nickname)
+                if Gobang.SUCCESS == ret:
+                    self.cmd_controller.users[self.cmd_controller.nickname].win_times += 1
+                    self.cmd_controller.users[self.cmd_controller.opp_nickname].fail_times += 1
+                elif Gobang.FAILED == ret:
+                    self.cmd_controller.users[self.cmd_controller.nickname].fail_times += 1
+                    self.cmd_controller.users[self.cmd_controller.opp_nickname].win_times += 1
+
+                self.RefreshList()
+
             if None != x_grid and None != y_grid:
                 wx.PostEvent(self.GetEventHandler(), PutStoneEvent(msg = ModuleMsg(ModuleMsg.PUT_MSG_TYPE, [x_grid, y_grid, color])))
 
-
             msg_text = {Gobang.TIED: "你俩打平了", Gobang.SUCCESS: "你赢了", Gobang.FAILED: "你输了", Gobang.UNKNOWN: "游戏终止被终止"}
             wx.CallAfter(self.status_static.SetLabel, msg_text[ret])
-
         elif ModuleMsg.EXIT_MSG_TYPE == msg.msg_type:
             print "hello"
             self.InitStopCtrl()
@@ -491,6 +525,14 @@ class GuiPanel(wx.Panel):
             wx.CallAfter(self.status_static.SetLabel,"some one exit")
             self.cmd_controller.thread_is_exit = True
 
+        elif ModuleMsg.START_MSG_TYPE == msg.msg_type:
+            print "start msg type"
+            if CmdController.NETPLAY_MODE == self.cmd_controller.mode:
+                self.cmd_controller.opp_nickname = msg.content[0].encode('utf-8')
+                print msg.content
+                self.cmd_controller.add_users_info(msg.content[1:])
+
+                self.RefreshList()
 
 
     #gui_controller的线程函数

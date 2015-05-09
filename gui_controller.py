@@ -29,7 +29,7 @@ class GuiController(object):
         if None == NicknameDlg.nickname or "" == NicknameDlg.nickname:
             return
 
-        self.cmd_controller.set_nickname(NicknameDlg.nickname)
+        self.cmd_controller.set_nickname(NicknameDlg.nickname.encode('utf-8'))
         #启动游戏界面对话框
         app = GuiApp(self.cmd_controller, 0)
         app.MainLoop()

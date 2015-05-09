@@ -9,11 +9,11 @@ import wx
 from gui_panel import GuiPanel
 
 class GuiFrame(wx.Frame):
-    def __init__(self, cmd_controller):
+    def __init__(self, cmd_controller, title = "gobang"):
         wx.Frame.__init__(self,
                           None,
-                          title = "gobang",
-                          size=(620,500),
+                          title = title,
+                          size=(620,600),
                           style = wx.CLOSE_BOX | wx.CAPTION | wx.SYSTEM_MENU | wx.MINIMIZE_BOX)
         vbox = wx.BoxSizer(wx.VERTICAL)
         #frame上有panel,panel才能添加button，编辑框等等

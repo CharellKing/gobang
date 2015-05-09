@@ -4,14 +4,21 @@
 import os
 import sys
 import re
+import json
 from threading import Thread
 import socket, select
+import fileinput
+import codecs
+
+cur_dir = os.path.split(os.path.realpath(__file__))[0]
 
 from human_role import HumanRole
 from robot_role import RobotRole
 from net_role import NetRole
 from module_msg import ModuleMsg
 from gobang import Gobang, Stone
+from user_info import UserInfo
+
 
 class CmdMsg(object):
     JOIN_MODE = "join_mode"
@@ -34,8 +41,12 @@ class CmdController(object):
     NETPLAY_MODE   = "网络对弈"
     NETWORK_PORT = 8889
 
+    TOP_USERS = 5              # top 5
+
     def __init__(self):
         self.nickname = None   #玩家昵称
+        self.opp_nickname = None # 对手昵称
+
         self.mode = None      #模式人机对弈与网络对弈
 
         self.roles = [None, None]
@@ -62,8 +73,61 @@ class CmdController(object):
         self.thread_func = self.work_thread
         self.watch_file = None
 
+        self.users = {}
+
     def set_nickname(self, nickname):
-        self.nickname = nickname
+        self.nickname = nickname.encode('utf-8')
+        self.load_users_info(nickname)
+        self.users[self.nickname] = UserInfo(self.nickname, 0, 0)
+
+    def load_users_info(self, nickname):
+        try:
+            f = codecs.open("user.info", "r", "utf-8")
+            while True:
+                line = f.readline().strip()
+                if None == line or "" == line:
+                    break
+                line = line.encode('utf-8')
+                (nickname, win_times, fail_times) = line.split(',')
+                nickname = nickname.encode('utf-8')
+                self.users[nickname] = UserInfo(nickname, int(win_times), int(fail_times))
+        except:
+            sys.stderr.write("%s/user.info not exist" %(cur_dir))
+            self.users[self.nickname] = UserInfo(self.nickname, 0, 0)
+
+        if False == self.users.has_key(self.nickname):
+            print "not exist"
+            self.users[self.nickname] = UserInfo(self.nickname, 0, 0)
+
+    def add_users_info(self, add_users_info):
+        for user in add_users_info:
+            (nickname, win_times, fail_times) = user.split(',')
+            nickname = nickname.encode('utf-8')
+            if False == self.users.has_key(nickname):
+                self.users[nickname] = UserInfo(nickname, int(win_times), int(fail_times))
+
+
+    def get_top_users(self):
+        users_list = self.users.values()
+        users_list.sort(UserInfo.rank_compare)
+
+        # sorted(users_list, cmp = UserInfo.rank_compare)
+        return users_list[len(users_list) - CmdController.TOP_USERS:len(users_list)]
+
+    def get_top_str(self):
+        users_list_str = []
+        for user in self.get_top_users():
+            users_list_str.append(str(user))
+        return users_list_str
+
+
+    def save_users_info(self):
+        f = codecs.open("user.info", "w", "utf-8")
+        lines = []
+        for user in self.users.values():
+            lines.append(str(user) + "\n")
+        f.writelines(lines)
+        f.close()
 
     # 设置线程函数
     def set_thread_func(self, thread_func):
@@ -184,6 +248,7 @@ class CmdController(object):
             self.work.join()
             self.thread_is_exit = True
 
+
     #有提示监听
     def hold_with_promt(self, cmd_msg):
         if True == self.is_starting():
@@ -253,7 +318,14 @@ class CmdController(object):
 
     # 无提示开始游戏
     def start_game_without_promt(self, cmd_msg):
-        ModuleMsg(ModuleMsg.START_MSG_TYPE).send(self.interface_out)
+        if CmdController.ROBOTPLAY_MODE == self.mode:
+            ModuleMsg(ModuleMsg.START_MSG_TYPE).send(self.interface_out)
+        else:
+            content = self.get_top_str()
+            content.append(str(self.users[self.nickname]))
+            content.insert(0, self.nickname)
+            print "***************************", content
+            ModuleMsg(ModuleMsg.START_MSG_TYPE, content).send(self.interface_out)
 
     # 有提示停止游戏
     def stop_game_with_promt(self, cmd_msg):
@@ -326,12 +398,16 @@ class CmdController(object):
             ModuleMsg(ModuleMsg.EXIT_MSG_TYPE).send(self.interface_out)
         self.is_exit = True
 
+        self.save_users_info()
+
         if None != self.roles[0] and None != self.roles[0].work:
             self.roles[0].work.join()
         if None != self.roles[1] and None != self.roles[1].work:
             self.roles[1].work.join()
         if None != self.work:
             self.work.join()
+
+
 
     #显示棋盘信息
     def show_chess(self, cmd_msg):
@@ -371,10 +447,10 @@ class CmdController(object):
 
     # 处理接受的消息
     def recv_msg(self, msg):
-        if msg.msg_type == ModuleMsg.PROMT_LOG_MSG_TYPE:
+        if ModuleMsg.PROMT_LOG_MSG_TYPE == msg.msg_type:
             self.watch_file.write(msg.content[0] + "\r\n")
             self.watch_file.flush()
-        elif msg.msg_type == ModuleMsg.THREAD_EXIT_MSG_TYPE:
+        elif ModuleMsg.THREAD_EXIT_MSG_TYPE == msg.msg_type:
             self.watch_file.write("cmd recv thread exit msg" + "\r\n")
             self.watch_file.flush()
             self.thread_is_exit = True
@@ -395,11 +471,23 @@ class CmdController(object):
         elif msg.SRV_RECV_CONN_MSG_TYPE == msg.msg_type:
             self.watch_file.write("cmd recv %s connect me" %(msg.content[0]) + "\r\n")
             self.watch_file.flush()
-        elif msg.msg_type == ModuleMsg.EXIT_MSG_TYPE:
+        elif ModuleMsg.EXIT_MSG_TYPE == msg.msg_type:
             self.watch_file.write("cmd recv exit msg" + "\r\n")
             self.watch_file.flush()
             self.thread_is_exit = True
             self.is_exit = True
+        elif ModuleMsg.START_MSG_TYPE == msg.msg_type:
+            if CmdController.NETPLAY_MODE == self.mode:
+                self.opp_nickname = msg.content[0].encode('utf-8')
+                self.add_users_info(msg.content[1:])
+        elif ModuleMsg.STOP_MSG_TYPE == msg.msg_type:
+            (ret, x_grid, y_grid, color) = msg.content
+            if Gobang.SUCCESS == ret:
+                self.users[self.nickname].win_times += 1
+                self.users[self.opp_nickname].fail_times += 1
+            elif Gobang.FAILED == ret:
+                self.users[self.nickname].fail_times += 1
+                self.users[self.opp_nickname].win_times += 1
 
 
     #cmd_controller的工作线程，用于接受human_role的接受消息
