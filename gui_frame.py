@@ -25,5 +25,9 @@ class GuiFrame(wx.Frame):
 
     #处理关闭消息
     def OnClose(self, evt):
-        self.panel.Close()
-        self.Destroy()
+        if True == self.panel.cmd_controller.is_starting():
+            dlg = wx.MessageDialog(None, "您正处于游戏中, 是否要离开", '提示', wx.YES_NO | wx.ICON_INFORMATION)
+            if dlg.ShowModal() == wx.ID_YES:
+                self.panel.Close()
+                self.Destroy()
+            dlg.Destroy()

@@ -245,17 +245,20 @@ class GuiPanel(wx.Panel):
     #处理关闭消息
     def OnClose(self, evt):
         print "OnClose"
-        if True == self.cmd_controller.is_starting():
-            print "before tip"
-            dlg = wx.MessageDialog(None, "您正处于游戏中, 是否要离开", '提示', wx.YES_NO | wx.ICON_INFORMATION)
-            print "After tip"
-            if dlg.ShowModal() == wx.ID_YES:
-                print "on close exit"
-                self.cmd_controller.exit_without_promt(CmdMsg("exit"))
-            dlg.Destroy()
-        else:
-            print "on close exit"
-            self.cmd_controller.exit_without_promt(CmdMsg("exit"))
+        self.cmd_controller.exit_without_promt(CmdMsg("exit"))
+        # if True == self.cmd_controller.is_starting():
+        #     print "before tip"
+        #     dlg = wx.MessageDialog(None, "您正处于游戏中, 是否要离开", '提示', wx.YES_NO | wx.ICON_INFORMATION)
+        #     print "After tip"
+        #     if dlg.ShowModal() == wx.ID_YES:
+        #         print "on close exit"
+        #         self.cmd_controller.exit_without_promt(CmdMsg("exit"))
+        #     print "before destroy dlg"
+        #     dlg.Destroy()
+        #     print "after destroy dlg"
+        # else:
+        #     print "on close exit"
+        #     self.cmd_controller.exit_without_promt(CmdMsg("exit"))
 
 
     #处理选择robot的按钮
